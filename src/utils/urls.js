@@ -20,6 +20,8 @@ export function fromLocation({ host = "whereby.com", protocol = "https:" } = {})
     let subdomain = "";
     let domain = host;
     let subdomainSeparator = ".";
+    let api = "https://api.whereby.dev";
+    let signal = "wss://signal.appearin.net";
     for (const { separator, pattern } of subdomainPatterns) {
         const match = pattern.exec(host);
         if (match) {
@@ -30,8 +32,16 @@ export function fromLocation({ host = "whereby.com", protocol = "https:" } = {})
         }
     }
     const organizationDomain = !subdomain ? domain : `${subdomain}${subdomainSeparator}${domain}`;
+    const match = localstackPattern.exec(host)
+    if (match) {
+        const domainWithoutPort = domain.substring(0, domain.indexOf(":"));
+        api = `https://${domainWithoutPort}:4090`;
+        signal = `wss://${domainWithoutPort}:4070`;
+    }
 
     return {
+        api,
+        signal,
         domain,
         domainWithSeparator: `${subdomainSeparator}${domain}`,
         organizationDomain,
