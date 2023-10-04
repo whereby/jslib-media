@@ -13,6 +13,7 @@ import { getHandler } from "../utils/getHandler";
 import { v4 as uuidv4 } from "uuid";
 import createMicAnalyser from "./VegaMicAnalyser";
 import { maybeTurnOnly } from "../utils/transportSettings";
+import MeetingExperienceDetector from "./MeetingExperienceDetector";
 
 const logger = console;
 const browserName = adapter.browserDetails.browser;
@@ -112,6 +113,13 @@ export default class VegaRtcManager {
         // Retry if connection closed until disconnectAll called;
         this._reconnect = true;
         this._reconnectTimeOut = null;
+
+        this._meetingExperienceDetector = new MeetingExperienceDetector(logger);
+        this._meetingExperienceDetector.on("meetingExperienceChanged", this._prioritiseAudio);
+    }
+
+    _prioritiseAudio(meetingExperience) {
+        logger.debug("prioritizeAudio() [experience: %o]", meetingExperience);
     }
 
     _updateAndScheduleMediaServersRefresh({ iceServers, sfuServer, mediaserverConfigTtlSeconds }) {
@@ -196,6 +204,9 @@ export default class VegaRtcManager {
         if (this._reconnect) {
             this._reconnectTimeOut = setTimeout(() => this._connect(), 1000);
         }
+
+        this._meetingExperienceDetector.removeAllListeners();
+        this._meetingExperienceDetector.close();
     }
 
     async _join() {
@@ -219,6 +230,7 @@ export default class VegaRtcManager {
             if (this._colocation) this._vegaConnection.message("setColocation", { colocation: this._colocation });
 
             await Promise.all([this._createTransport(true), this._createTransport(false)]);
+            this._meetingExperienceDetector.attachTransport(this._receiveTransport);
 
             const mediaPromises = [];
 
@@ -1326,6 +1338,10 @@ export default class VegaRtcManager {
                         return this._onDataConsumerClosed(data);
                     case "dominantSpeaker":
                         return this._onDominantSpeaker(data);
+                    case "producerScore":
+                        return this._onProducerScore(data);
+                    case "layersChange":
+                        return this._onLayersChange(data);
                     default:
                         logger.debug(`unknown message method "${method}"`);
                         return;
@@ -1451,6 +1467,14 @@ export default class VegaRtcManager {
         const { sourceClientId: clientId } = consumer.appData;
 
         this._emitToPWA(rtcManagerEvents.DOMINANT_SPEAKER, { clientId });
+    }
+
+    _onProducerScore({ kind, score }) {
+        this._meetingExperienceDetector.addProducerScore(kind, score);
+    }
+
+    _onLayersChange({ consumerId, layers }) {
+        this._meetingExperienceDetector.updateLayers(consumerId, layers);
     }
 
     _consumerClosedCleanup(consumer) {
