@@ -51,11 +51,11 @@ export default class P2pRtcManager extends BaseRtcManager {
             // audio
             const audioTransceivers = pc
                 .getTransceivers()
-                .filter(transceiver => transceiver?.sender?.track?.kind === "audio");
+                .filter((transceiver) => transceiver?.sender?.track?.kind === "audio");
 
-            audioTransceivers.forEach(audioTransceiver => {
+            audioTransceivers.forEach((audioTransceiver) => {
                 // If not implemented return
-                if (typeof RTCRtpSender.getCapabilities === undefined) return;
+                if (typeof RTCRtpSender.getCapabilities === "undefined") return;
                 const capabilities = RTCRtpSender.getCapabilities("audio");
                 for (let i = 0; i < capabilities.codecs.length; i++) {
                     if (redOn && capabilities.codecs[i].mimeType.toLowerCase() === "audio/red") {
@@ -64,7 +64,7 @@ export default class P2pRtcManager extends BaseRtcManager {
                     }
                 }
                 // If not implemented return
-                if (typeof audioTransceiver.setCodecPreferences === undefined) return;
+                if (typeof audioTransceiver.setCodecPreferences === "undefined") return;
                 audioTransceiver.setCodecPreferences(capabilities.codecs);
             });
             // video
@@ -120,7 +120,7 @@ export default class P2pRtcManager extends BaseRtcManager {
             .then((offer) => {
                 // SDP munging workaround for Firefox, because it doesn't support setCodecPreferences()
                 // Only vp9 because FF does not support AV1 yet
-                if (vp9On || redOn && browserName === "firefox") {
+                if ((vp9On || redOn) && browserName === "firefox") {
                     offer.sdp = setCodecPreferenceSDP(offer.sdp, vp9On, redOn);
                 }
 
