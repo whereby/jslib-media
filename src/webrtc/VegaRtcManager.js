@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import createMicAnalyser from "./VegaMicAnalyser";
 import { maybeTurnOnly } from "../utils/transportSettings";
 import MeetingExperienceDetector from "./MeetingExperience/MeetingExperienceDetector";
-import { calculateRemoteRtpQuality } from "./meetingExperience";
+import { calculateLocalRtpQuality, calculateRemoteRtpQuality } from "./meetingExperience";
 
 const logger = console;
 const browserName = adapter.browserDetails.browser;
@@ -116,11 +116,9 @@ export default class VegaRtcManager {
         this._reconnectTimeOut = null;
 
         this._meetingExperienceDetector = new MeetingExperienceDetector(logger);
-        this._meetingExperienceDetector.on("localRTPConnectionQuality", (quality) => {
-            if (quality === "bad") {
-                this._prioritiseAudio()
-                this._emitToPWA(CONNECTION_STATUS.EVENTS.LOCAL_RTP_CONNECTION_QUALITY, quality)    
-            }
+        this._meetingExperienceDetector.on("meetingExperience", (quality) => {
+            if (quality === "bad") this._prioritiseAudio()
+            this._emitToPWA(CONNECTION_STATUS.EVENTS.MEETING_EXPERIENCE_CHANGED, quality)    
         })
     }
 
@@ -494,6 +492,7 @@ export default class VegaRtcManager {
                     if (producer.appData.localClosed)
                         this._vegaConnection?.message("closeProducers", { producerIds: [producer.id] });
 
+                    this._meetingExperienceDetector.removeProducer(producer.id)
                     this._micProducer = null;
                     this._micProducerPromise = null;
                 });
@@ -1504,6 +1503,14 @@ export default class VegaRtcManager {
     }
 
     _onProducerScore({ producerId, kind, score }) {
+        const newScore = calculateLocalRtpQuality(score).score
+        if (kind === "video" && this._webcamProducer) this._webcamProducer.appData.score = newScore
+        if (kind === "audio" && this._micProducer) this._micProducer.appData.score = newScore
+        if (this._webcamProducer && kind === "audio") return
+        this._emitToPWA(CONNECTION_STATUS.EVENTS.LOCAL_RTP_CONNECTION_QUALITY, {
+            quality: newScore
+        })    
+        
         this._meetingExperienceDetector.addProducerScore(producerId, kind, score);
     }
     
@@ -1514,10 +1521,10 @@ export default class VegaRtcManager {
         const newScore = calculateRemoteRtpQuality(score.producerScores)
         if (kind === "video") c.appData.videoScore = newScore
         if (kind === "audio") c.appData.audioScore = newScore
+        if (c.appData.videoScore && kind === "audio") return
         this._emitToPWA(CONNECTION_STATUS.EVENTS.REMOTE_RTP_CONNECTON_QUALITY, {
             clientId: c.appData.sourceClientId,
-            quality: calculateRemoteRtpQuality(score.producerScores),
-            kind
+            quality: newScore
         })    
     }
 
@@ -1529,6 +1536,7 @@ export default class VegaRtcManager {
         const { sourceClientId: clientId, screenShare } = consumer.appData;
         const clientState = this._getOrCreateClientState(clientId);
         const stream = screenShare ? clientState.screenStream : clientState.webcamStream;
+        this._meetingExperienceDetector.removeConsumer(consumer.id)
 
         if (!stream) return;
 

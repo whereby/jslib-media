@@ -4,8 +4,6 @@ import ProducerStats from "./ProducerStats";
 
 
 const LOG_PREFIX = "MeetingExperienceDetector: ";
-const LOW_AUDIO_SCORE_TIME_THRESHOLD = 2000;
-const AUDIO_SCORE_THRESHOLD = 9;
 const PACKET_LOSS_THRESHOLD = 0.02;
 const PACKET_LOSS_INTERVAL_THRESHOLD = 1;
 
@@ -41,11 +39,15 @@ export default class MeetingExperienceDetector extends EventEmitter {
     }
 
     _evaluateConnectionQuality() {
-        let quality = this._localRTPConnectionQuality;
+        let quality = "good"
 
-        if (this._hasBadAudio() && this._hasPacketLoss() && this._lowConsumerScores()) {
-            quality = "bad"
-        }
+        if (this._hasPacketLoss()) quality = "bad"
+
+        const audioProducer = this._getProducer("audio")
+        if (audioProducer && audioProducer.hasLowScore()) quality = "bad"
+        
+        const videoProducer = this._getProducer("video")
+        if (videoProducer && videoProducer.hasLowScore()) quality = "bad"
 
         if (quality !== this._localRTPConnectionQuality) {
             this.emit("localRTPConnectionQuality", { quality })
@@ -72,6 +74,10 @@ export default class MeetingExperienceDetector extends EventEmitter {
             this._producers.set(producerId, p)
         }
     }
+
+    removeProducer(producerId) {
+        this._producers.delete(producerId)
+    }
     
     /**
      * An updated consumer score was sent from SFU.
@@ -85,7 +91,6 @@ export default class MeetingExperienceDetector extends EventEmitter {
         if (!kind) return this._logger.error(LOG_PREFIX + "addConsumerScore: kind missing");
         if (!consumerId) return this._logger.error(LOG_PREFIX + "addConsumerScore: consumerId missing");
         if (!score) return this._logger.error(LOG_PREFIX + "addConsumerScore: score missing");
-        if (kind === "audio") return
 
         let c = this._consumers.get(consumerId)
         if (c) c.setScore(score)
@@ -94,8 +99,10 @@ export default class MeetingExperienceDetector extends EventEmitter {
             c.setScore(score)
             this._consumers.set(consumerId, c);
         }
+    }
 
-        this.emit("remoteRTPConnectionQuality", { consumerId: c.id, quality: c.getRemoteScore() })
+    removeConsumer(consumerId) {
+        this,this._consumers.delete(consumerId)
     }
     
     /**
@@ -153,10 +160,8 @@ export default class MeetingExperienceDetector extends EventEmitter {
         transport.once("closed", () => clearInterval(this._statsPollingIntervalHandle));
     }
 
-    _hasBadAudio() {
-        const p = Array.from(this._producers.values()).find(p => p.kind === "audio")
-        if (!p) return false
-        else return p.hasBadAudio(AUDIO_SCORE_THRESHOLD, LOW_AUDIO_SCORE_TIME_THRESHOLD)
+    _getProducer(kind) {
+        return Array.from(this._producers.values()).find(p => p.kind === kind)
     }
 
     _lowConsumerScores() {

@@ -1,3 +1,6 @@
+const TIME_THRESHOLD = 2000;
+const SCORE_THRESHOLD = 9;
+
 export default class ProducerStats {
     constructor (id, kind) {
         this.id = id;
@@ -16,10 +19,10 @@ export default class ProducerStats {
         return this._score
     }
     
-    hasBadAudio(scoreThreshold, timeThreshold) {
+    hasLowScore() {
         return (
-            this._score < scoreThreshold &&
-            Date.now() - this._scoreTimestamp > timeThreshold
+            this._score < SCORE_THRESHOLD &&
+            Date.now() - this._scoreTimestamp > TIME_THRESHOLD
         );
     }
 

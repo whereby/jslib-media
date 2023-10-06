@@ -9,6 +9,7 @@ export const EVENTS = {
     REMOTE_STREAM_TRACK_REMOVED: "remote_stream_track_removed",
     REMOTE_RTP_CONNECTON_QUALITY: "remote_rtp_connection_quality",
     LOCAL_RTP_CONNECTION_QUALITY: "local_rtp_connection_quality",
+    MEETING_EXPERIENCE_CHANGED: "meeting_experience_changed"
 };
 
 export const TYPES = {
