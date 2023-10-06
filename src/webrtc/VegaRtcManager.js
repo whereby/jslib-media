@@ -13,7 +13,8 @@ import { getHandler } from "../utils/getHandler";
 import { v4 as uuidv4 } from "uuid";
 import createMicAnalyser from "./VegaMicAnalyser";
 import { maybeTurnOnly } from "../utils/transportSettings";
-import MeetingExperienceDetector from "./MeetingExperienceDetector";
+import MeetingExperienceDetector from "./MeetingExperience/MeetingExperienceDetector";
+import { calculateRemoteRtpQuality } from "./meetingExperience";
 
 const logger = console;
 const browserName = adapter.browserDetails.browser;
@@ -115,11 +116,42 @@ export default class VegaRtcManager {
         this._reconnectTimeOut = null;
 
         this._meetingExperienceDetector = new MeetingExperienceDetector(logger);
-        this._meetingExperienceDetector.on("meetingExperienceChanged", this._prioritiseAudio);
+        this._meetingExperienceDetector.on("localRTPConnectionQuality", (quality) => {
+            if (quality === "bad") {
+                this._prioritiseAudio()
+                this._emitToPWA(CONNECTION_STATUS.EVENTS.LOCAL_RTP_CONNECTION_QUALITY, quality)    
+            }
+        })
     }
 
     _prioritiseAudio(meetingExperience) {
-        logger.debug("prioritizeAudio() [experience: %o]", meetingExperience);
+        logger.debug("_prioritizeAudio() [experience: %o]", meetingExperience);
+        if (this._micProducer) {
+            const currentRtpParameters = this._micProducer.rtpSender.getParameters()
+            const currentEncodings = currentRtpParameters.encodings
+            if (currentEncodings.length > 0) {
+            this._micProducer.rtpSender.setParameters(
+                {...currentRtpParameters,
+                encodings: currentEncodings.map((e) => ({...e, maxBitrate: 12000 })),
+            }).catch(e => logger.error("_prioritizeAudio() %o", e))
+            logger.debug("_prioritizeAudio New audio encodings: %o", this._micProducer.rtpSender.getParameters().encodings)
+            }
+        }
+
+        if (this._webcamProducer) {
+            const currentRtpParameters = this._webcamProducer.rtpSender.getParameters()
+            const currentEncodings = currentRtpParameters.encodings
+            if (currentEncodings.length > 0) {
+                this._webcamProducer.rtpSender.setParameters({
+                    ...currentRtpParameters,
+                    encodings: currentEncodings.map((e) => ({...e, maxBitrate: 120000, maxFramerate: 5}))
+            }).catch(e => logger.error("_prioritizeAudio() %o", e))
+            }
+        }
+
+        this._consumers.forEach((c) => {
+            if (c.kind === "video") c.pause()
+        })
     }
 
     _updateAndScheduleMediaServersRefresh({ iceServers, sfuServer, mediaserverConfigTtlSeconds }) {
@@ -130,7 +162,7 @@ export default class VegaRtcManager {
         this._sendTransport?.updateIceServers({ iceServers: this._iceServers });
         this._receiveTransport?.updateIceServers({ iceServers: this._iceServers });
 
-        this._clearMediaServersRefresh();
+       this._clearMediaServersRefresh();
         if (!mediaserverConfigTtlSeconds) {
             return;
         }
@@ -1340,6 +1372,8 @@ export default class VegaRtcManager {
                         return this._onDominantSpeaker(data);
                     case "producerScore":
                         return this._onProducerScore(data);
+                    case "consumerScore":
+                        return this._onConsumerScore(data);
                     case "layersChange":
                         return this._onLayersChange(data);
                     default:
@@ -1469,8 +1503,22 @@ export default class VegaRtcManager {
         this._emitToPWA(rtcManagerEvents.DOMINANT_SPEAKER, { clientId });
     }
 
-    _onProducerScore({ kind, score }) {
-        this._meetingExperienceDetector.addProducerScore(kind, score);
+    _onProducerScore({ producerId, kind, score }) {
+        this._meetingExperienceDetector.addProducerScore(producerId, kind, score);
+    }
+    
+    _onConsumerScore({ consumerId, kind, score }) {
+        const c = this._consumers.get(consumerId)
+        if (!c) return
+
+        const newScore = calculateRemoteRtpQuality(score.producerScores)
+        if (kind === "video") c.appData.videoScore = newScore
+        if (kind === "audio") c.appData.audioScore = newScore
+        this._emitToPWA(CONNECTION_STATUS.EVENTS.REMOTE_RTP_CONNECTON_QUALITY, {
+            clientId: c.appData.sourceClientId,
+            quality: calculateRemoteRtpQuality(score.producerScores),
+            kind
+        })    
     }
 
     _onLayersChange({ consumerId, layers }) {
