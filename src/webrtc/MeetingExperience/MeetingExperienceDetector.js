@@ -2,18 +2,25 @@ import EventEmitter from "events";
 import ConsumerStats from "./ConsumerStats";
 import ProducerStats from "./ProducerStats";
 
-
 const LOG_PREFIX = "MeetingExperienceDetector: ";
-const PACKET_LOSS_THRESHOLD = 0.02;
-const PACKET_LOSS_INTERVAL_THRESHOLD = 1;
+const PACKET_LOSS_THRESHOLD = 0.03
+
+// Criteria used to consider if meeting experience is bad
+const FAIL_INTERVAL_THRESHOLD = 2
+const FAIL_SCORE_THRESHOLD = 9
+const FAIL_TIME_THRESHOLD = 2000
+
+// Criteria used to consider if meeting experience is good
+const RECOVER_INTERVAL_THRESHOLD = 10
+const RECOVER_TIME_THRESHOLD = 10000
 
 export default class MeetingExperienceDetector extends EventEmitter {
     constructor(logger) {
         super();
         this.closed = false;
         this._logger = logger;
-        this._consumers = new Map();
-        this._producers = new Map();
+        this._consumerStats = new Map();
+        this._producerStats = new Map();
         this._currentMeetingExperience = "good"
         this._prevRecvStats = {
             totalPacketsLost: 0,
@@ -21,12 +28,14 @@ export default class MeetingExperienceDetector extends EventEmitter {
             packetLoss: 0,
         };
         this._packetLossDuringIntervalCount = 0;
+        this._noPacketLossDuringIntervalCount = 0;
         this._startMonitor();
     }
 
     close() {
         clearInterval(this._monitorIntervalHandle);
-        if (this._statsPollingIntervalHandle) this.closed = true;
+        clearInterval(this._statsPollingIntervalHandle)
+        this.closed = true;
     }
 
     /**
@@ -39,20 +48,43 @@ export default class MeetingExperienceDetector extends EventEmitter {
     }
 
     _evaluateMeetingExperience() {
-        let meetingExperience = "good"
-
-        const hasPacketLoss = this._packetLossDuringIntervalCount > PACKET_LOSS_INTERVAL_THRESHOLD
-
-        const audioProducer = this._getProducer("audio")
-        if (audioProducer && audioProducer.hasLowScore() && hasPacketLoss) meetingExperience = "bad"
-        
-        const videoProducer = this._getProducer("video")
-        if (videoProducer && videoProducer.hasLowScore() && hasPacketLoss) meetingExperience = "bad"
+        let meetingExperience = ""
+        if (this._currentMeetingExperience === "bad") {
+            meetingExperience = this._isGoodExperience(RECOVER_INTERVAL_THRESHOLD, RECOVER_TIME_THRESHOLD) ? "good" : "bad"
+        } else {
+            meetingExperience = this._isBadExperience(FAIL_INTERVAL_THRESHOLD, FAIL_SCORE_THRESHOLD, FAIL_TIME_THRESHOLD) ? "bad" : "good"
+        }
 
         if (meetingExperience !== this._currentMeetingExperience) {
             this.emit("meetingExperienceChanged", { meetingExperience })
             this._currentMeetingExperience = meetingExperience
         }
+    }
+
+    _isGoodExperience(packetLossIntervalThreshold, timeThreshold) {
+        if (this._noPacketLossDuringIntervalCount < packetLossIntervalThreshold) return false
+        
+        let producerGoodScore = false
+
+        const audioProducer = this._getProducer("audio")
+        if (audioProducer && audioProducer.hasGoodScore(timeThreshold)) producerGoodScore = true
+        else producerGoodScore = false
+
+        const videoProducer = this._getProducer("video")
+        if (videoProducer && videoProducer.hasGoodScore(timeThreshold)) producerGoodScore = true
+        else producerGoodScore = false
+        return producerGoodScore
+    }
+
+    _isBadExperience(packetLossIntervalThreshold, scoreThreshold, timeThreshold) {
+        const hasPacketLoss = this._packetLossDuringIntervalCount > packetLossIntervalThreshold
+
+        const audioProducer = this._getProducer("audio")
+        if (audioProducer && audioProducer.hasLowScore(scoreThreshold, timeThreshold) && hasPacketLoss) return true
+        
+        const videoProducer = this._getProducer("video")
+        if (videoProducer && videoProducer.hasLowScore(scoreThreshold, timeThreshold) && hasPacketLoss) return true
+        return false
     }
 
     /**
@@ -67,17 +99,17 @@ export default class MeetingExperienceDetector extends EventEmitter {
         if (!kind) return this._logger.error(LOG_PREFIX + "addProducerScore: kind missing");
         if (!score) return this._logger.error(LOG_PREFIX + "addProducerScore: score missing");
 
-        let p = this._producers.get(producerId)
+        let p = this._producerStats.get(producerId)
         if (p) p.setScore(score)
         else {
             p = new ProducerStats(producerId, kind) 
             p.setScore(score)
-            this._producers.set(producerId, p)
+            this._producerStats.set(producerId, p)
         }
     }
 
     removeProducer(producerId) {
-        this._producers.delete(producerId)
+        this._producerStats.delete(producerId)
     }
     
     /**
@@ -93,17 +125,17 @@ export default class MeetingExperienceDetector extends EventEmitter {
         if (!consumerId) return this._logger.error(LOG_PREFIX + "addConsumerScore: consumerId missing");
         if (!score) return this._logger.error(LOG_PREFIX + "addConsumerScore: score missing");
 
-        let c = this._consumers.get(consumerId)
+        let c = this._consumerStats.get(consumerId)
         if (c) c.setScore(score)
         else {
             c = new ConsumerStats(consumerId, kind)
             c.setScore(score)
-            this._consumers.set(consumerId, c);
+            this._consumerStats.set(consumerId, c);
         }
     }
 
     removeConsumer(consumerId) {
-        this,this._consumers.delete(consumerId)
+        this,this._consumerStats.delete(consumerId)
     }
     
     /**
@@ -128,7 +160,10 @@ export default class MeetingExperienceDetector extends EventEmitter {
 
                     const packetLoss = this._calculatePacketLoss(inboundRtpStats, this._prevRecvStats);
                     if (packetLoss > PACKET_LOSS_THRESHOLD) this._packetLossDuringIntervalCount++;
-                    else this._packetLossDuringIntervalCount = 0;
+                    else  {
+                        this._noPacketLossDuringIntervalCount++;
+                        this._packetLossDuringIntervalCount = 0;
+                    }
 
                     this._prevRecvStats = {
                         totalPacketsRecv: inboundRtpStats.packetsReceived,
@@ -137,17 +172,17 @@ export default class MeetingExperienceDetector extends EventEmitter {
                     };
                 })
                 .catch((error) => this._logger.error(LOG_PREFIX + "%o", error));
-        }, 3000);
+        }, 2000);
 
         transport.once("closed", () => clearInterval(this._statsPollingIntervalHandle));
     }
 
     _getProducer(kind) {
-        return Array.from(this._producers.values()).find(p => p.kind === kind)
+        return Array.from(this._producerStats.values()).find(p => p.kind === kind)
     }
 
     _lowConsumerScores() {
-        return Array.from(this._consumers.values()).every(c => c.score < 9)
+        return Array.from(this._consumerStats.values()).every(c => c.score < 9)
     }
 
     _calculatePacketLoss(rtpStats, prevRtpStats) {
@@ -155,8 +190,5 @@ export default class MeetingExperienceDetector extends EventEmitter {
         if (!deltaPacketsLost) return 0;
         const deltaPacketsRecv = rtpStats.packetsReceived - prevRtpStats.totalPacketsRecv;
         return deltaPacketsLost / deltaPacketsRecv;
-    }
-
-    _hasPacketLoss() {
     }
 }

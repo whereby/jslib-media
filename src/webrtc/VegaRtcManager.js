@@ -115,15 +115,23 @@ export default class VegaRtcManager {
         this._reconnect = true;
         this._reconnectTimeOut = null;
 
+        this._rtpThrottled = false
         this._meetingExperienceDetector = new MeetingExperienceDetector(logger);
         this._meetingExperienceDetector.on("meetingExperienceChanged", ({ meetingExperience }) => {
-            if (meetingExperience === "bad") this._prioritiseAudio(meetingExperience)
-            this._emitToPWA(CONNECTION_STATUS.EVENTS.RTP_THROTTLED, true)    
+            if (meetingExperience === "bad" && !this._rtpThrottled) {
+                this._doRTPThrottle()
+            }
+            if (meetingExperience === "good" && this._rtpThrottled) {
+                this._removeRTPThrottle
+            }
+            this._rtpThrottled = meetingExperience === "bad" ? true : false
+            this._emitToPWA(CONNECTION_STATUS.EVENTS.RTP_THROTTLED, meetingExperience)    
         })
     }
 
-    _prioritiseAudio(meetingExperience) {
-        logger.debug("_prioritizeAudio() [experience: %o]", meetingExperience);
+    _doRTPThrottle() {
+        logger.debug("_removeRTPThrottle()");
+        // Introduce less ambitious bitrates for outgoing audio.
         if (this._micProducer) {
             const currentRtpParameters = this._micProducer.rtpSender.getParameters()
             const currentEncodings = currentRtpParameters.encodings
@@ -131,11 +139,12 @@ export default class VegaRtcManager {
             this._micProducer.rtpSender.setParameters(
                 {...currentRtpParameters,
                 encodings: currentEncodings.map((e) => ({...e, maxBitrate: 12000 })),
-            }).catch(e => logger.error("_prioritizeAudio() %o", e))
-            logger.debug("_prioritizeAudio New audio encodings: %o", this._micProducer.rtpSender.getParameters().encodings)
+            }).catch(e => logger.error("_doRTPThrottle() %o", e))
+            logger.debug("_doRTPThrottle New audio encodings: %o", this._micProducer.rtpSender.getParameters().encodings)
             }
         }
 
+        // Introduce less ambitous bitrates for outgoing video.
         if (this._webcamProducer) {
             const currentRtpParameters = this._webcamProducer.rtpSender.getParameters()
             const currentEncodings = currentRtpParameters.encodings
@@ -143,12 +152,66 @@ export default class VegaRtcManager {
                 this._webcamProducer.rtpSender.setParameters({
                     ...currentRtpParameters,
                     encodings: currentEncodings.map((e) => ({...e, maxBitrate: 120000, maxFramerate: 5}))
-            }).catch(e => logger.error("_prioritizeAudio() %o", e))
+            }).catch(e => logger.error("_doRTPThrottle() %o", e))
             }
         }
 
+        // Pause video consumers and mark them as throttled.
         this._consumers.forEach((c) => {
-            if (c.kind === "video") c.pause()
+            if (c.kind === "video") {
+                c.pause()
+                c.appData.pausedByRTPThrottle = true
+            }
+        })
+    }
+
+    _removeRTPThrottle() {
+        // Remove restrictions.
+        // TODO: can we do this in a better way, e.g. remove maxBitrate instead of setting a high value.
+        if (this._micProducer) {
+            const currentRtpParameters = this._micProducer.rtpSender.getParameters()
+            const currentEncodings = currentRtpParameters.encodings
+            if (currentEncodings.length > 0) {
+            this._micProducer.rtpSender.setParameters(
+                {...currentRtpParameters,
+                encodings: currentEncodings.map((e) => ({...e, maxBitrate: 100000 })),
+            }).catch(e => logger.error("_doRTPThrottle() %o", e))
+            logger.debug("_doRTPThrottle New audio encodings: %o", this._micProducer.rtpSender.getParameters().encodings)
+            }
+        }
+
+        // Remove restrictions.
+        // TODO: can we do this in a better way, e.g. remove maxBitrate and maxFramerate instead of setting high values.
+        if (this._webcamProducer) {
+            const currentRtpParameters = this._webcamProducer.rtpSender.getParameters()
+            const currentEncodings = currentRtpParameters.encodings
+            if (currentEncodings.length > 0) {
+                this._webcamProducer.rtpSender.setParameters({
+                    ...currentRtpParameters,
+                    encodings: currentEncodings.map((e) => ({...e, maxBitrate: 3000000, maxFramerate: 30}))
+            }).catch(e => logger.error("_doRTPThrottle() %o", e))
+            }
+        }
+
+        // Resume video consumers marked as throttled.
+        this._consumers.forEach((c) => {
+            if (c.kind === "video" && c.appData.pausedByRTPThrottle) {
+                c.resume()
+                c.appData.pausedByRTPThrottle = false
+            }
+        })
+
+
+    }
+
+    _cancelRTPThrottle() {
+        logger.debug("_cancelRTPThrottle()")
+        // Resume video consumers that was paused by RTP throttling.
+        this._consumers.forEach((c) => {
+            if (c.kind === "video" && c.appData.pausedByRTPThrottle) {
+                c.appData.pausedByRTPThrottle = false
+                c.resume()
+            }
         })
     }
 
@@ -1385,6 +1448,8 @@ export default class VegaRtcManager {
 
     async _onConsumerReady(options) {
         logger.debug("_onConsumerReady()", { id: options.id, producerId: options.producerId });
+        // TODO: do we keep state of these and resume if we remove throttle?
+        if (this._rtpThrottled) return logger.warn(`Refusing to add consumer ${options.id}, RTP is throttled.`)
 
         const consumer = await this._receiveTransport.consume(options);
 
@@ -1450,6 +1515,7 @@ export default class VegaRtcManager {
         const consumer = this._consumers.get(consumerId);
 
         if (!consumer) return;
+        if (this._rtpThrottled) return logger.warn(`Refusing to resume consumer ${consumerId}, RTP is throttled.`)
 
         consumer.appData.remotePaused = false;
 

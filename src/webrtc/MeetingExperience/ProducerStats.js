@@ -1,6 +1,3 @@
-const TIME_THRESHOLD = 2000;
-const SCORE_THRESHOLD = 9;
-
 export default class ProducerStats {
     constructor (id, kind) {
         this.id = id;
@@ -14,10 +11,17 @@ export default class ProducerStats {
         this.scoreTimestamp = Date.now()
     }
 
-    hasLowScore() {
+    hasLowScore(scoreThreshold, timeThreshold) {
         return (
-            this.score < SCORE_THRESHOLD &&
-            Date.now() - this.scoreTimestamp > TIME_THRESHOLD
+            this.score < scoreThreshold &&
+            Date.now() - this.scoreTimestamp > timeThreshold
         );
+    }
+
+    hasGoodScore(timeThreshold) {
+        return (
+            this.score === 10 &&
+            Date.now() - this.scoreTimestamp > timeThreshold
+        )
     }
 }
