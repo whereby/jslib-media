@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import createMicAnalyser from "./VegaMicAnalyser";
 import { maybeTurnOnly } from "../utils/transportSettings";
 import MeetingExperienceDetector from "./MeetingExperience/MeetingExperienceDetector";
-import { calculateLocalRtpQuality, calculateRemoteRtpQuality } from "./meetingExperience";
+import { calculateLocalRtpQuality, calculateRemoteRtpQuality } from "./MeetingExperience/helpers";
 
 const logger = console;
 const browserName = adapter.browserDetails.browser;
@@ -116,9 +116,9 @@ export default class VegaRtcManager {
         this._reconnectTimeOut = null;
 
         this._meetingExperienceDetector = new MeetingExperienceDetector(logger);
-        this._meetingExperienceDetector.on("meetingExperience", (quality) => {
-            if (quality === "bad") this._prioritiseAudio()
-            this._emitToPWA(CONNECTION_STATUS.EVENTS.MEETING_EXPERIENCE_CHANGED, quality)    
+        this._meetingExperienceDetector.on("meetingExperienceChanged", ({ meetingExperience }) => {
+            if (meetingExperience === "bad") this._prioritiseAudio(meetingExperience)
+            this._emitToPWA(CONNECTION_STATUS.EVENTS.RTP_THROTTLED, true)    
         })
     }
 
@@ -1373,8 +1373,6 @@ export default class VegaRtcManager {
                         return this._onProducerScore(data);
                     case "consumerScore":
                         return this._onConsumerScore(data);
-                    case "layersChange":
-                        return this._onLayersChange(data);
                     default:
                         logger.debug(`unknown message method "${method}"`);
                         return;
@@ -1503,7 +1501,7 @@ export default class VegaRtcManager {
     }
 
     _onProducerScore({ producerId, kind, score }) {
-        const newScore = calculateLocalRtpQuality(score).score
+        const newScore = calculateLocalRtpQuality(score)
         if (kind === "video" && this._webcamProducer) this._webcamProducer.appData.score = newScore
         if (kind === "audio" && this._micProducer) this._micProducer.appData.score = newScore
         if (this._webcamProducer && kind === "audio") return
@@ -1511,7 +1509,7 @@ export default class VegaRtcManager {
             quality: newScore
         })    
         
-        this._meetingExperienceDetector.addProducerScore(producerId, kind, score);
+        this._meetingExperienceDetector.addProducerScore(producerId, kind, newScore);
     }
     
     _onConsumerScore({ consumerId, kind, score }) {
@@ -1526,10 +1524,8 @@ export default class VegaRtcManager {
             clientId: c.appData.sourceClientId,
             quality: newScore
         })    
-    }
-
-    _onLayersChange({ consumerId, layers }) {
-        this._meetingExperienceDetector.updateLayers(consumerId, layers);
+       
+        this._meetingExperienceDetector.addConsumerScore(consumerId, kind, newScore)
     }
 
     _consumerClosedCleanup(consumer) {

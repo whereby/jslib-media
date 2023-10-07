@@ -3,7 +3,6 @@ export default class ConsumerStats {
         this.id = id;
         this.kind = kind;
         this._score = null
-        this.layers = null
     }
 
     setScore({ score, producerScores, producerScore }) {

@@ -14,7 +14,7 @@ export default class MeetingExperienceDetector extends EventEmitter {
         this._logger = logger;
         this._consumers = new Map();
         this._producers = new Map();
-        this._localRTPConnectionQuality = "good"
+        this._currentMeetingExperience = "good"
         this._prevRecvStats = {
             totalPacketsLost: 0,
             totalPacketsRecv: 0,
@@ -34,23 +34,24 @@ export default class MeetingExperienceDetector extends EventEmitter {
      */
     _startMonitor() {
         this._monitorIntervalHandle = setInterval(() => {
-            this._evaluateConnectionQuality()
+            this._evaluateMeetingExperience()
         }, 2000);
     }
 
-    _evaluateConnectionQuality() {
-        let quality = "good"
+    _evaluateMeetingExperience() {
+        let meetingExperience = "good"
 
-        if (this._hasPacketLoss()) quality = "bad"
+        const hasPacketLoss = this._packetLossDuringIntervalCount > PACKET_LOSS_INTERVAL_THRESHOLD
 
         const audioProducer = this._getProducer("audio")
-        if (audioProducer && audioProducer.hasLowScore()) quality = "bad"
+        if (audioProducer && audioProducer.hasLowScore() && hasPacketLoss) meetingExperience = "bad"
         
         const videoProducer = this._getProducer("video")
-        if (videoProducer && videoProducer.hasLowScore()) quality = "bad"
+        if (videoProducer && videoProducer.hasLowScore() && hasPacketLoss) meetingExperience = "bad"
 
-        if (quality !== this._localRTPConnectionQuality) {
-            this.emit("localRTPConnectionQuality", { quality })
+        if (meetingExperience !== this._currentMeetingExperience) {
+            this.emit("meetingExperienceChanged", { meetingExperience })
+            this._currentMeetingExperience = meetingExperience
         }
     }
 
@@ -59,12 +60,12 @@ export default class MeetingExperienceDetector extends EventEmitter {
      *
      * @param {string} producerId id.
      * @param {string} kind audio | video.
-     * @param {object} score array of mediasoup producerscores.
+     * @param {number} score score.
      */
     addProducerScore(producerId, kind, score) {
-        this._logger.debug(LOG_PREFIX + "addProducerScore: [id: %s, kind: %s, score: %o]", producerId, kind, score);
+        this._logger.debug(LOG_PREFIX + "addProducerScore: [id: %s, kind: %s, score: %s]", producerId, kind, score);
         if (!kind) return this._logger.error(LOG_PREFIX + "addProducerScore: kind missing");
-        if (!score || !Array.isArray(score)) return this._logger.error(LOG_PREFIX + "addProducerScore: score missing");
+        if (!score) return this._logger.error(LOG_PREFIX + "addProducerScore: score missing");
 
         let p = this._producers.get(producerId)
         if (p) p.setScore(score)
@@ -84,10 +85,10 @@ export default class MeetingExperienceDetector extends EventEmitter {
      *
      * @param {string} consumerId consumer id.
      * @param {string} kind audio | video.
-     * @param {object} score array of mediasoup consumerscores.
+     * @param {number} score score.
      */
     addConsumerScore(consumerId, kind, score) {
-        this._logger.debug(LOG_PREFIX + "addConsumerScore: [id: %s, kind: %s, score: %o]", consumerId, kind, score);
+        this._logger.debug(LOG_PREFIX + "addConsumerScore: [id: %s, kind: %s, score: %s]", consumerId, kind, score);
         if (!kind) return this._logger.error(LOG_PREFIX + "addConsumerScore: kind missing");
         if (!consumerId) return this._logger.error(LOG_PREFIX + "addConsumerScore: consumerId missing");
         if (!score) return this._logger.error(LOG_PREFIX + "addConsumerScore: score missing");
@@ -105,25 +106,6 @@ export default class MeetingExperienceDetector extends EventEmitter {
         this,this._consumers.delete(consumerId)
     }
     
-    /**
-     * SFU has told us we're consuming a new combination of  layers.
-     *
-     * @param {string} consumerId 
-     * @param {object} layers 
-     */
-    updateLayers(consumerId, layers) {
-        // this._logger.debug(LOG_PREFIX + "updateLayers: [consumerId: %s, layers: %o]", consumerId, layers);
-        const c = this._consumers.get(consumerId);
-        if (c) c.layers = layers
-        else {
-            const newConsumer = new ConsumerStats(consumerId, "video")
-            newConsumer.layers = layers
-            this._consumers.set(consumerId, newConsumer);
-        }
-
-        this.emit("newConsumerLayers", { consumerId, layers: [layers.spatialLayer, layers.temporalLayer]})
-    }
-
     /**
      * Attach the mediasoup recv transport and poll for stats.
      * 
@@ -176,6 +158,5 @@ export default class MeetingExperienceDetector extends EventEmitter {
     }
 
     _hasPacketLoss() {
-        return this._packetLossDuringIntervalCount > PACKET_LOSS_INTERVAL_THRESHOLD;
     }
 }
