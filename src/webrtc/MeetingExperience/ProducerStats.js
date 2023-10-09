@@ -11,16 +11,16 @@ export default class ProducerStats {
         this.scoreTimestamp = Date.now()
     }
 
-    hasLowScore(scoreThreshold, timeThreshold) {
+    hasScoreLessThan(scoreThreshold, timeThreshold) {
         return (
             this.score < scoreThreshold &&
             Date.now() - this.scoreTimestamp > timeThreshold
         );
     }
 
-    hasGoodScore(timeThreshold) {
+    hasScore(score, timeThreshold) {
         return (
-            this.score === 10 &&
+            this.score === score &&
             Date.now() - this.scoreTimestamp > timeThreshold
         )
     }

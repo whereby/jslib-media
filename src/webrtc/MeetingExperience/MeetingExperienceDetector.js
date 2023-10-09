@@ -12,6 +12,7 @@ const FAIL_TIME_THRESHOLD = 2000
 
 // Criteria used to consider if meeting experience is good
 const RECOVER_INTERVAL_THRESHOLD = 10
+const RECOVER_TARGET_SCORE = 10
 const RECOVER_TIME_THRESHOLD = 10000
 
 export default class MeetingExperienceDetector extends EventEmitter {
@@ -29,7 +30,9 @@ export default class MeetingExperienceDetector extends EventEmitter {
         };
         this._packetLossDuringIntervalCount = 0;
         this._noPacketLossDuringIntervalCount = 0;
-        this._startMonitor();
+        this._monitorIntervalHandle = setInterval(() => {
+            this._evaluateMeetingExperience()
+        }, 2000);
     }
 
     close() {
@@ -38,22 +41,12 @@ export default class MeetingExperienceDetector extends EventEmitter {
         this.closed = true;
     }
 
-    /**
-     * Start monitor that could potentially emit event about changed meeting experience.
-     */
-    _startMonitor() {
-        this._monitorIntervalHandle = setInterval(() => {
-            this._evaluateMeetingExperience()
-        }, 2000);
-    }
-
     _evaluateMeetingExperience() {
         let meetingExperience = ""
-        if (this._currentMeetingExperience === "bad") {
-            meetingExperience = this._isGoodExperience(RECOVER_INTERVAL_THRESHOLD, RECOVER_TIME_THRESHOLD) ? "good" : "bad"
-        } else {
-            meetingExperience = this._isBadExperience(FAIL_INTERVAL_THRESHOLD, FAIL_SCORE_THRESHOLD, FAIL_TIME_THRESHOLD) ? "bad" : "good"
-        }
+        if (this._currentMeetingExperience === "bad")
+            meetingExperience = this._experienceIsGood(RECOVER_INTERVAL_THRESHOLD, RECOVER_TARGET_SCORE, RECOVER_TIME_THRESHOLD) ? "good" : "bad"
+        else
+            meetingExperience = this._experienceIsBad(FAIL_INTERVAL_THRESHOLD, FAIL_SCORE_THRESHOLD, FAIL_TIME_THRESHOLD) ? "bad" : "good"
 
         if (meetingExperience !== this._currentMeetingExperience) {
             this.emit("meetingExperienceChanged", { meetingExperience })
@@ -61,29 +54,45 @@ export default class MeetingExperienceDetector extends EventEmitter {
         }
     }
 
-    _isGoodExperience(packetLossIntervalThreshold, timeThreshold) {
+    /**
+     * Decide if the meeting experience can be consided as good.
+     * 
+     * @param {number} packetLossIntervalThreshold 
+     * @param {number} targetScore 
+     * @param {number} timeThreshold 
+     * @returns {boolean} meeting experience is good.
+     */
+    _experienceIsGood(packetLossIntervalThreshold, targetScore, timeThreshold) {
         if (this._noPacketLossDuringIntervalCount < packetLossIntervalThreshold) return false
         
         let producerGoodScore = false
 
         const audioProducer = this._getProducer("audio")
-        if (audioProducer && audioProducer.hasGoodScore(timeThreshold)) producerGoodScore = true
+        if (audioProducer && audioProducer.hasScore(targetScore, timeThreshold)) producerGoodScore = true
         else producerGoodScore = false
 
         const videoProducer = this._getProducer("video")
-        if (videoProducer && videoProducer.hasGoodScore(timeThreshold)) producerGoodScore = true
+        if (videoProducer && videoProducer.hasScore(targetScore, timeThreshold)) producerGoodScore = true
         else producerGoodScore = false
         return producerGoodScore
     }
 
-    _isBadExperience(packetLossIntervalThreshold, scoreThreshold, timeThreshold) {
+    /**
+     * Decide if the meeting experience can be considered as bad.
+     * 
+     * @param {number} packetLossIntervalThreshold 
+     * @param {number} scoreThreshold 
+     * @param {number} timeThreshold 
+     * @returns {boolean} meeting experience is bad.
+     */
+    _experienceIsBad(packetLossIntervalThreshold, scoreThreshold, timeThreshold) {
         const hasPacketLoss = this._packetLossDuringIntervalCount > packetLossIntervalThreshold
 
         const audioProducer = this._getProducer("audio")
-        if (audioProducer && audioProducer.hasLowScore(scoreThreshold, timeThreshold) && hasPacketLoss) return true
+        if (audioProducer && audioProducer.hasScoreLessThan(scoreThreshold, timeThreshold) && hasPacketLoss) return true
         
         const videoProducer = this._getProducer("video")
-        if (videoProducer && videoProducer.hasLowScore(scoreThreshold, timeThreshold) && hasPacketLoss) return true
+        if (videoProducer && videoProducer.hasScoreLessThan(scoreThreshold, timeThreshold) && hasPacketLoss) return true
         return false
     }
 
@@ -135,11 +144,11 @@ export default class MeetingExperienceDetector extends EventEmitter {
     }
 
     removeConsumer(consumerId) {
-        this,this._consumerStats.delete(consumerId)
+        this._consumerStats.delete(consumerId)
     }
     
     /**
-     * Attach the mediasoup recv transport and poll for stats.
+     * Poll the mediasoup recv transport for stats.
      * 
      * @param {object} transport mediasoup recv transport 
      */

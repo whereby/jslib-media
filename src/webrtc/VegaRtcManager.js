@@ -116,21 +116,30 @@ export default class VegaRtcManager {
         this._reconnectTimeOut = null;
 
         this._rtpThrottled = false
+
+        const { rtpThrottle } = this._features
+        this._initMeetingExperienceDetector(rtpThrottle)
+    }
+
+    _initMeetingExperienceDetector(rtpThrottle) {
+        logger.debug("initMeetingExperienceDetector() [rtpThrottle: %s", rtpThrottle)
+        if (!rtpThrottle) return logger.warn("Refusing to init MeetingExperienceDetector, rtpThrottle feature not enabled.")
+
         this._meetingExperienceDetector = new MeetingExperienceDetector(logger);
         this._meetingExperienceDetector.on("meetingExperienceChanged", ({ meetingExperience }) => {
-            if (meetingExperience === "bad" && !this._rtpThrottled) {
-                this._doRTPThrottle()
-            }
-            if (meetingExperience === "good" && this._rtpThrottled) {
-                this._removeRTPThrottle
-            }
+            if (meetingExperience === "bad" && !this._rtpThrottled)
+                this._doRTPThrottle(rtpThrottle)
+            if (meetingExperience === "good" && this._rtpThrottled)
+                this._stopRTPThrottle(rtpThrottle)
             this._rtpThrottled = meetingExperience === "bad" ? true : false
-            this._emitToPWA(CONNECTION_STATUS.EVENTS.RTP_THROTTLED, meetingExperience)    
+            this._emitToPWA(CONNECTION_STATUS.EVENTS.RTP_THROTTLED, { rtpThrottled: this._rtpThrottled })    
         })
     }
 
-    _doRTPThrottle() {
-        logger.debug("_removeRTPThrottle()");
+    _doRTPThrottle(rtpThrottle) {
+        logger.debug("_doRTPThrottle() [rtpThrottle: %s]", rtpThrottle);
+        if (!rtpThrottle) return logger.warn("Refusing to throttle RTP, rtpThrottle feature not enabled.")
+
         // Introduce less ambitious bitrates for outgoing audio.
         if (this._micProducer) {
             const currentRtpParameters = this._micProducer.rtpSender.getParameters()
@@ -165,7 +174,10 @@ export default class VegaRtcManager {
         })
     }
 
-    _removeRTPThrottle() {
+    _stopRTPThrottle(rtpThrottle) {
+        logger.debug("_removeRTPThrottle() [rtpThrottle %s]", rtpThrottle)
+        if (!rtpThrottle) return logger.warn("Refusing to remove RTP throttle, rtpThrottle feature not enabled.")
+        
         // Remove restrictions.
         // TODO: can we do this in a better way, e.g. remove maxBitrate instead of setting a high value.
         if (this._micProducer) {
@@ -188,29 +200,16 @@ export default class VegaRtcManager {
             if (currentEncodings.length > 0) {
                 this._webcamProducer.rtpSender.setParameters({
                     ...currentRtpParameters,
-                    encodings: currentEncodings.map((e) => ({...e, maxBitrate: 3000000, maxFramerate: 30}))
+                    encodings: currentEncodings.map((e) => ({...e, maxBitrate: 3000000, maxFramerate: 60}))
             }).catch(e => logger.error("_doRTPThrottle() %o", e))
             }
         }
 
-        // Resume video consumers marked as throttled.
-        this._consumers.forEach((c) => {
-            if (c.kind === "video" && c.appData.pausedByRTPThrottle) {
-                c.resume()
-                c.appData.pausedByRTPThrottle = false
-            }
-        })
-
-
-    }
-
-    _cancelRTPThrottle() {
-        logger.debug("_cancelRTPThrottle()")
         // Resume video consumers that was paused by RTP throttling.
         this._consumers.forEach((c) => {
             if (c.kind === "video" && c.appData.pausedByRTPThrottle) {
-                c.appData.pausedByRTPThrottle = false
                 c.resume()
+                c.appData.pausedByRTPThrottle = false
             }
         })
     }
@@ -298,8 +297,10 @@ export default class VegaRtcManager {
             this._reconnectTimeOut = setTimeout(() => this._connect(), 1000);
         }
 
-        this._meetingExperienceDetector.removeAllListeners();
-        this._meetingExperienceDetector.close();
+        if (this._meetingExperienceDetector) {
+            this._meetingExperienceDetector.removeAllListeners();
+            this._meetingExperienceDetector.close();
+        }
     }
 
     async _join() {
@@ -323,7 +324,9 @@ export default class VegaRtcManager {
             if (this._colocation) this._vegaConnection.message("setColocation", { colocation: this._colocation });
 
             await Promise.all([this._createTransport(true), this._createTransport(false)]);
-            this._meetingExperienceDetector.attachTransport(this._receiveTransport);
+
+            if (this._meetingExperienceDetector)
+                this._meetingExperienceDetector.attachTransport(this._receiveTransport);
 
             const mediaPromises = [];
 
@@ -555,7 +558,9 @@ export default class VegaRtcManager {
                     if (producer.appData.localClosed)
                         this._vegaConnection?.message("closeProducers", { producerIds: [producer.id] });
 
-                    this._meetingExperienceDetector.removeProducer(producer.id)
+                    if (this._meetingExperienceDetector)
+                        this._meetingExperienceDetector.removeProducer(producer.id)
+                    
                     this._micProducer = null;
                     this._micProducerPromise = null;
                 });
@@ -1448,8 +1453,6 @@ export default class VegaRtcManager {
 
     async _onConsumerReady(options) {
         logger.debug("_onConsumerReady()", { id: options.id, producerId: options.producerId });
-        // TODO: do we keep state of these and resume if we remove throttle?
-        if (this._rtpThrottled) return logger.warn(`Refusing to add consumer ${options.id}, RTP is throttled.`)
 
         const consumer = await this._receiveTransport.consume(options);
 
@@ -1568,24 +1571,38 @@ export default class VegaRtcManager {
 
     _onProducerScore({ producerId, kind, score }) {
         const newScore = calculateLocalRtpQuality(score)
-        if (kind === "video" && this._webcamProducer) this._webcamProducer.appData.score = newScore
-        if (kind === "audio" && this._micProducer) this._micProducer.appData.score = newScore
+        if (kind === "video" && this._webcamProducer) {
+            if (this._webcamProducer.appData.score === newScore) return
+            this._webcamProducer.appData.score = newScore
+        } 
+        if (kind === "audio" && this._micProducer) {
+            if (this._micProducer.appData.score === newScore) return
+            this._micProducer.appData.score = newScore
+        }
         if (this._webcamProducer && kind === "audio") return
         this._emitToPWA(CONNECTION_STATUS.EVENTS.LOCAL_RTP_CONNECTION_QUALITY, {
             quality: newScore
         })    
         
-        this._meetingExperienceDetector.addProducerScore(producerId, kind, newScore);
+        if (this._meetingExperienceDetector)
+            this._meetingExperienceDetector.addProducerScore(producerId, kind, newScore);
     }
     
     _onConsumerScore({ consumerId, kind, score }) {
         const c = this._consumers.get(consumerId)
         if (!c) return
+        if (!this._meetingExperienceDetector) return
 
         const newScore = calculateRemoteRtpQuality(score.producerScores)
-        if (kind === "video") c.appData.videoScore = newScore
-        if (kind === "audio") c.appData.audioScore = newScore
-        if (c.appData.videoScore && kind === "audio") return
+        if (kind === "video") {
+            if (c.appData.videoScore === newScore) return
+            c.appData.videoScore = newScore
+        }
+        if (kind === "audio") {
+            if (c.appData.audioScore === newScore ||
+                (c.appData.videoScore && kind === "audio"))
+            c.appData.audioScore = newScore
+        }
         this._emitToPWA(CONNECTION_STATUS.EVENTS.REMOTE_RTP_CONNECTON_QUALITY, {
             clientId: c.appData.sourceClientId,
             quality: newScore
@@ -1598,7 +1615,8 @@ export default class VegaRtcManager {
         const { sourceClientId: clientId, screenShare } = consumer.appData;
         const clientState = this._getOrCreateClientState(clientId);
         const stream = screenShare ? clientState.screenStream : clientState.webcamStream;
-        this._meetingExperienceDetector.removeConsumer(consumer.id)
+        if (this._meetingExperienceDetector)
+            this._meetingExperienceDetector.removeConsumer(consumer.id)
 
         if (!stream) return;
 
@@ -1636,7 +1654,7 @@ export default class VegaRtcManager {
         } = clientState;
 
         // Need to pause/resume any consumers that are part of a stream that has been
-        // accepted or dosconnected by the PWA
+        // accepted or disconnected by the PWA
         const toPauseConsumers = [];
         const toResumeConsumers = [];
 
