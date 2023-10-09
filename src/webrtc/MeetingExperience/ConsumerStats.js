@@ -1,8 +1,8 @@
 export default class ConsumerStats {
-    constructor (id, kind) {
+    constructor(id, kind) {
         this.id = id;
         this.kind = kind;
-        this._score = null
+        this._score = null;
     }
 
     setScore({ score, producerScores, producerScore }) {
@@ -10,7 +10,7 @@ export default class ConsumerStats {
             timestamp: Date.now(),
             score,
             producerScore,
-            producerScores
-        }
+            producerScores,
+        };
     }
 }

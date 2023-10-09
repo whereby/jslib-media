@@ -115,103 +115,116 @@ export default class VegaRtcManager {
         this._reconnect = true;
         this._reconnectTimeOut = null;
 
-        this._rtpThrottled = false
+        this._rtpThrottled = false;
 
-        const { rtpThrottle } = this._features
-        this._initMeetingExperienceDetector(rtpThrottle)
+        const { rtpThrottle } = this._features;
+        this._initMeetingExperienceDetector(rtpThrottle);
     }
 
     _initMeetingExperienceDetector(rtpThrottle) {
-        logger.debug("initMeetingExperienceDetector() [rtpThrottle: %s", rtpThrottle)
-        if (!rtpThrottle) return logger.warn("Refusing to init MeetingExperienceDetector, rtpThrottle feature not enabled.")
+        logger.debug("initMeetingExperienceDetector() [rtpThrottle: %s", rtpThrottle);
+        if (!rtpThrottle)
+            return logger.warn("Refusing to init MeetingExperienceDetector, rtpThrottle feature not enabled.");
 
         this._meetingExperienceDetector = new MeetingExperienceDetector(logger);
         this._meetingExperienceDetector.on("meetingExperienceChanged", ({ meetingExperience }) => {
-            if (meetingExperience === "bad" && !this._rtpThrottled)
-                this._doRTPThrottle(rtpThrottle)
-            if (meetingExperience === "good" && this._rtpThrottled)
-                this._stopRTPThrottle(rtpThrottle)
-            this._rtpThrottled = meetingExperience === "bad" ? true : false
-            this._emitToPWA(CONNECTION_STATUS.EVENTS.RTP_THROTTLED, { rtpThrottled: this._rtpThrottled })    
-        })
+            if (meetingExperience === "bad" && !this._rtpThrottled) this._doRTPThrottle(rtpThrottle);
+            if (meetingExperience === "good" && this._rtpThrottled) this._stopRTPThrottle(rtpThrottle);
+            this._rtpThrottled = meetingExperience === "bad" ? true : false;
+            this._emitToPWA(CONNECTION_STATUS.EVENTS.RTP_THROTTLED, { rtpThrottled: this._rtpThrottled });
+        });
     }
 
     _doRTPThrottle(rtpThrottle) {
         logger.debug("_doRTPThrottle() [rtpThrottle: %s]", rtpThrottle);
-        if (!rtpThrottle) return logger.warn("Refusing to throttle RTP, rtpThrottle feature not enabled.")
+        if (!rtpThrottle) return logger.warn("Refusing to throttle RTP, rtpThrottle feature not enabled.");
 
         // Introduce less ambitious bitrates for outgoing audio.
         if (this._micProducer) {
-            const currentRtpParameters = this._micProducer.rtpSender.getParameters()
-            const currentEncodings = currentRtpParameters.encodings
+            const currentRtpParameters = this._micProducer.rtpSender.getParameters();
+            const currentEncodings = currentRtpParameters.encodings;
             if (currentEncodings.length > 0) {
-            this._micProducer.rtpSender.setParameters(
-                {...currentRtpParameters,
-                encodings: currentEncodings.map((e) => ({...e, maxBitrate: 12000 })),
-            }).catch(e => logger.error("_doRTPThrottle() %o", e))
-            logger.debug("_doRTPThrottle New audio encodings: %o", this._micProducer.rtpSender.getParameters().encodings)
+                this._micProducer.rtpSender
+                    .setParameters({
+                        ...currentRtpParameters,
+                        encodings: currentEncodings.map((e) => ({ ...e, maxBitrate: 12000 })),
+                    })
+                    .catch((e) => logger.error("_doRTPThrottle() %o", e));
+                logger.debug(
+                    "_doRTPThrottle New audio encodings: %o",
+                    this._micProducer.rtpSender.getParameters().encodings
+                );
             }
         }
 
         // Introduce less ambitous bitrates for outgoing video.
         if (this._webcamProducer) {
-            const currentRtpParameters = this._webcamProducer.rtpSender.getParameters()
-            const currentEncodings = currentRtpParameters.encodings
+            const currentRtpParameters = this._webcamProducer.rtpSender.getParameters();
+            const currentEncodings = currentRtpParameters.encodings;
             if (currentEncodings.length > 0) {
-                this._webcamProducer.rtpSender.setParameters({
-                    ...currentRtpParameters,
-                    encodings: currentEncodings.map((e) => ({...e, maxBitrate: 120000, maxFramerate: 5}))
-            }).catch(e => logger.error("_doRTPThrottle() %o", e))
+                this._webcamProducer.rtpSender
+                    .setParameters({
+                        ...currentRtpParameters,
+                        encodings: currentEncodings.map((e) => ({ ...e, maxBitrate: 120000, maxFramerate: 5 })),
+                    })
+                    .catch((e) => logger.error("_doRTPThrottle() %o", e));
             }
         }
 
         // Pause video consumers and mark them as throttled.
         this._consumers.forEach((c) => {
             if (c.kind === "video") {
-                c.pause()
-                c.appData.pausedByRTPThrottle = true
+                c.pause();
+                c.appData.pausedByRTPThrottle = true;
             }
-        })
+        });
     }
 
     _stopRTPThrottle(rtpThrottle) {
-        logger.debug("_removeRTPThrottle() [rtpThrottle %s]", rtpThrottle)
-        if (!rtpThrottle) return logger.warn("Refusing to remove RTP throttle, rtpThrottle feature not enabled.")
-        
+        logger.debug("_removeRTPThrottle() [rtpThrottle %s]", rtpThrottle);
+        if (!rtpThrottle) return logger.warn("Refusing to remove RTP throttle, rtpThrottle feature not enabled.");
+
         // Remove restrictions.
         // TODO: can we do this in a better way, e.g. remove maxBitrate instead of setting a high value.
         if (this._micProducer) {
-            const currentRtpParameters = this._micProducer.rtpSender.getParameters()
-            const currentEncodings = currentRtpParameters.encodings
+            const currentRtpParameters = this._micProducer.rtpSender.getParameters();
+            const currentEncodings = currentRtpParameters.encodings;
             if (currentEncodings.length > 0) {
-            this._micProducer.rtpSender.setParameters(
-                {...currentRtpParameters,
-                encodings: currentEncodings.map((e) => ({...e, maxBitrate: 100000 })),
-            }).catch(e => logger.error("_doRTPThrottle() %o", e))
-            logger.debug("_doRTPThrottle New audio encodings: %o", this._micProducer.rtpSender.getParameters().encodings)
+                this._micProducer.rtpSender
+                    .setParameters({
+                        ...currentRtpParameters,
+                        encodings: currentEncodings.map((e) => ({ ...e, maxBitrate: 100000 })),
+                    })
+                    .catch((e) => logger.error("_doRTPThrottle() %o", e));
+                logger.debug(
+                    "_doRTPThrottle New audio encodings: %o",
+                    this._micProducer.rtpSender.getParameters().encodings
+                );
             }
         }
 
         // Remove restrictions.
         // TODO: can we do this in a better way, e.g. remove maxBitrate and maxFramerate instead of setting high values.
         if (this._webcamProducer) {
-            const currentRtpParameters = this._webcamProducer.rtpSender.getParameters()
-            const currentEncodings = currentRtpParameters.encodings
+            const currentRtpParameters = this._webcamProducer.rtpSender.getParameters();
+            const currentEncodings = currentRtpParameters.encodings;
             if (currentEncodings.length > 0) {
-                this._webcamProducer.rtpSender.setParameters({
-                    ...currentRtpParameters,
-                    encodings: currentEncodings.map((e) => ({...e, maxBitrate: 3000000, maxFramerate: 60}))
-            }).catch(e => logger.error("_doRTPThrottle() %o", e))
+                this._webcamProducer.rtpSender
+                    .setParameters({
+                        ...currentRtpParameters,
+                        encodings: currentEncodings.map((e) => ({ ...e, maxBitrate: 3000000, maxFramerate: 60 })),
+                    })
+                    .catch((e) => logger.error("_doRTPThrottle() %o", e));
             }
         }
 
         // Resume video consumers that was paused by RTP throttling.
         this._consumers.forEach((c) => {
             if (c.kind === "video" && c.appData.pausedByRTPThrottle) {
-                c.resume()
-                c.appData.pausedByRTPThrottle = false
+                c.resume();
+                c.appData.pausedByRTPThrottle = false;
             }
-        })
+        });
     }
 
     _updateAndScheduleMediaServersRefresh({ iceServers, sfuServer, mediaserverConfigTtlSeconds }) {
@@ -222,7 +235,7 @@ export default class VegaRtcManager {
         this._sendTransport?.updateIceServers({ iceServers: this._iceServers });
         this._receiveTransport?.updateIceServers({ iceServers: this._iceServers });
 
-       this._clearMediaServersRefresh();
+        this._clearMediaServersRefresh();
         if (!mediaserverConfigTtlSeconds) {
             return;
         }
@@ -558,9 +571,8 @@ export default class VegaRtcManager {
                     if (producer.appData.localClosed)
                         this._vegaConnection?.message("closeProducers", { producerIds: [producer.id] });
 
-                    if (this._meetingExperienceDetector)
-                        this._meetingExperienceDetector.removeProducer(producer.id)
-                    
+                    if (this._meetingExperienceDetector) this._meetingExperienceDetector.removeProducer(producer.id);
+
                     this._micProducer = null;
                     this._micProducerPromise = null;
                 });
@@ -1518,7 +1530,7 @@ export default class VegaRtcManager {
         const consumer = this._consumers.get(consumerId);
 
         if (!consumer) return;
-        if (this._rtpThrottled) return logger.warn(`Refusing to resume consumer ${consumerId}, RTP is throttled.`)
+        if (this._rtpThrottled) return logger.warn(`Refusing to resume consumer ${consumerId}, RTP is throttled.`);
 
         consumer.appData.remotePaused = false;
 
@@ -1570,53 +1582,51 @@ export default class VegaRtcManager {
     }
 
     _onProducerScore({ producerId, kind, score }) {
-        const newScore = calculateLocalRtpQuality(score)
+        const newScore = calculateLocalRtpQuality(score);
         if (kind === "video" && this._webcamProducer) {
-            if (this._webcamProducer.appData.score === newScore) return
-            this._webcamProducer.appData.score = newScore
-        } 
-        if (kind === "audio" && this._micProducer) {
-            if (this._micProducer.appData.score === newScore) return
-            this._micProducer.appData.score = newScore
+            if (this._webcamProducer.appData.score === newScore) return;
+            this._webcamProducer.appData.score = newScore;
         }
-        if (this._webcamProducer && kind === "audio") return
+        if (kind === "audio" && this._micProducer) {
+            if (this._micProducer.appData.score === newScore) return;
+            this._micProducer.appData.score = newScore;
+        }
+        if (this._webcamProducer && kind === "audio") return;
         this._emitToPWA(CONNECTION_STATUS.EVENTS.LOCAL_RTP_CONNECTION_QUALITY, {
-            quality: newScore
-        })    
-        
+            quality: newScore,
+        });
+
         if (this._meetingExperienceDetector)
             this._meetingExperienceDetector.addProducerScore(producerId, kind, newScore);
     }
-    
-    _onConsumerScore({ consumerId, kind, score }) {
-        const c = this._consumers.get(consumerId)
-        if (!c) return
-        if (!this._meetingExperienceDetector) return
 
-        const newScore = calculateRemoteRtpQuality(score.producerScores)
+    _onConsumerScore({ consumerId, kind, score }) {
+        const c = this._consumers.get(consumerId);
+        if (!c) return;
+        if (!this._meetingExperienceDetector) return;
+
+        const newScore = calculateRemoteRtpQuality(score.producerScores);
         if (kind === "video") {
-            if (c.appData.videoScore === newScore) return
-            c.appData.videoScore = newScore
+            if (c.appData.videoScore === newScore) return;
+            c.appData.videoScore = newScore;
         }
         if (kind === "audio") {
-            if (c.appData.audioScore === newScore ||
-                (c.appData.videoScore && kind === "audio"))
-            c.appData.audioScore = newScore
+            if (c.appData.audioScore === newScore || (c.appData.videoScore && kind === "audio"))
+                c.appData.audioScore = newScore;
         }
         this._emitToPWA(CONNECTION_STATUS.EVENTS.REMOTE_RTP_CONNECTON_QUALITY, {
             clientId: c.appData.sourceClientId,
-            quality: newScore
-        })    
-       
-        this._meetingExperienceDetector.addConsumerScore(consumerId, kind, newScore)
+            quality: newScore,
+        });
+
+        this._meetingExperienceDetector.addConsumerScore(consumerId, kind, newScore);
     }
 
     _consumerClosedCleanup(consumer) {
         const { sourceClientId: clientId, screenShare } = consumer.appData;
         const clientState = this._getOrCreateClientState(clientId);
         const stream = screenShare ? clientState.screenStream : clientState.webcamStream;
-        if (this._meetingExperienceDetector)
-            this._meetingExperienceDetector.removeConsumer(consumer.id)
+        if (this._meetingExperienceDetector) this._meetingExperienceDetector.removeConsumer(consumer.id);
 
         if (!stream) return;
 
