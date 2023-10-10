@@ -1603,7 +1603,6 @@ export default class VegaRtcManager {
     _onConsumerScore({ consumerId, kind, score }) {
         const c = this._consumers.get(consumerId);
         if (!c) return;
-        if (!this._meetingExperienceDetector) return;
 
         const newScore = calculateRemoteRtpQuality(score.producerScores);
         if (kind === "video") {
@@ -1619,7 +1618,8 @@ export default class VegaRtcManager {
             quality: newScore,
         });
 
-        this._meetingExperienceDetector.addConsumerScore(consumerId, kind, newScore);
+        if (this._meetingExperienceDetector)
+            this._meetingExperienceDetector.addConsumerScore(consumerId, kind, newScore);
     }
 
     _consumerClosedCleanup(consumer) {
