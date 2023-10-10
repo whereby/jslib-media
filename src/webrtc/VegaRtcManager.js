@@ -1592,7 +1592,7 @@ export default class VegaRtcManager {
             this._micProducer.appData.score = newScore;
         }
         if (this._webcamProducer && kind === "audio") return;
-        this._emitToPWA(CONNECTION_STATUS.EVENTS.LOCAL_RTP_CONNECTION_QUALITY, {
+        this._emitToPWA(CONNECTION_STATUS.EVENTS.LOCAL_RTP_TRANSMISSION_QUALITY, {
             quality: newScore,
         });
 
@@ -1613,7 +1613,7 @@ export default class VegaRtcManager {
             if (c.appData.audioScore === newScore || (c.appData.videoScore && kind === "audio"))
                 c.appData.audioScore = newScore;
         }
-        this._emitToPWA(CONNECTION_STATUS.EVENTS.REMOTE_RTP_CONNECTON_QUALITY, {
+        this._emitToPWA(CONNECTION_STATUS.EVENTS.REMOTE_RTP_TRANSMISSION_QUALITY, {
             clientId: c.appData.sourceClientId,
             quality: newScore,
         });
