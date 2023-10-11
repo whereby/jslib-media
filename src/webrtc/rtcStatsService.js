@@ -96,9 +96,11 @@ function rtcStatsConnection(wsURL) {
 
             ws.onerror = (e) => {
                 connection.connected = false;
+                console.log("wss debug: rtcstats error");
                 logger.warn(`[RTCSTATS] WebSocket error`, e);
             };
             ws.onclose = (e) => {
+                console.log("wss debug: rtcstats disconnect");
                 connection.connected = false;
                 logger.info(`[RTCSTATS] Closed ${e.code}`);
             };

@@ -1,28 +1,26 @@
 import EventEmitter from "events";
-import ConsumerStats from "./ConsumerStats";
-import ProducerStats from "./ProducerStats";
 
-const LOG_PREFIX = "MeetingExperienceDetector: ";
+const LOG_PREFIX = "VegaTransmissionAnalyser: ";
 const PACKET_LOSS_THRESHOLD = 0.03;
 
-// Criteria used to consider if meeting experience is bad
+// Criteria used to consider if rtp transmission is having problems
 const FAIL_INTERVAL_THRESHOLD = 2;
 const FAIL_SCORE_THRESHOLD = 9;
 const FAIL_TIME_THRESHOLD = 2000;
 
-// Criteria used to consider if meeting experience is good
+// Criteria used to consider if rtp transmission is ok
 const RECOVER_INTERVAL_THRESHOLD = 10;
 const RECOVER_TARGET_SCORE = 10;
 const RECOVER_TIME_THRESHOLD = 10000;
 
-export default class MeetingExperienceDetector extends EventEmitter {
+export default class VegaTransmissionAnalyser extends EventEmitter {
     constructor(logger) {
         super();
         this.closed = false;
         this._logger = logger;
         this._consumerStats = new Map();
         this._producerStats = new Map();
-        this._currentMeetingExperience = "good";
+        this._currentTransmission = "ok";
         this._prevRecvStats = {
             totalPacketsLost: 0,
             totalPacketsRecv: 0,
@@ -31,7 +29,7 @@ export default class MeetingExperienceDetector extends EventEmitter {
         this._packetLossDuringIntervalCount = 0;
         this._noPacketLossDuringIntervalCount = 0;
         this._monitorIntervalHandle = setInterval(() => {
-            this._evaluateMeetingExperience();
+            this._evaluateTransmission();
         }, 2000);
     }
 
@@ -41,40 +39,40 @@ export default class MeetingExperienceDetector extends EventEmitter {
         this.closed = true;
     }
 
-    _evaluateMeetingExperience() {
-        let meetingExperience = "";
-        if (this._currentMeetingExperience === "bad")
-            meetingExperience = this._experienceIsGood(
+    _evaluateTransmission() {
+        let transmission = "";
+        if (this._currentTransmission === "problems")
+            transmission = this._transmissionIsOk(
                 RECOVER_INTERVAL_THRESHOLD,
                 RECOVER_TARGET_SCORE,
                 RECOVER_TIME_THRESHOLD
             )
-                ? "good"
-                : "bad";
+                ? "ok"
+                : "problems";
         else
-            meetingExperience = this._experienceIsBad(
+            transmission = this._transmissionHasProblems(
                 FAIL_INTERVAL_THRESHOLD,
                 FAIL_SCORE_THRESHOLD,
                 FAIL_TIME_THRESHOLD
             )
-                ? "bad"
-                : "good";
+                ? "problems"
+                : "ok";
 
-        if (meetingExperience !== this._currentMeetingExperience) {
-            this.emit("meetingExperienceChanged", { meetingExperience });
-            this._currentMeetingExperience = meetingExperience;
+        if (transmission !== this._currentTransmission) {
+            this.emit("transmissionChanged", transmission);
+            this._currentTransmission = transmission;
         }
     }
 
     /**
-     * Decide if the meeting experience can be consided as good.
+     * Decide if the rtp transmission can be consided as ok.
      *
      * @param {number} packetLossIntervalThreshold
      * @param {number} targetScore
      * @param {number} timeThreshold
-     * @returns {boolean} meeting experience is good.
+     * @returns {boolean} rtp transmission is ok.
      */
-    _experienceIsGood(packetLossIntervalThreshold, targetScore, timeThreshold) {
+    _transmissionIsOk(packetLossIntervalThreshold, targetScore, timeThreshold) {
         if (this._noPacketLossDuringIntervalCount < packetLossIntervalThreshold) return false;
 
         let producerGoodScore = false;
@@ -90,14 +88,14 @@ export default class MeetingExperienceDetector extends EventEmitter {
     }
 
     /**
-     * Decide if the meeting experience can be considered as bad.
+     * Decide if the rtp transmission can be considered as having problems.
      *
      * @param {number} packetLossIntervalThreshold
      * @param {number} scoreThreshold
      * @param {number} timeThreshold
-     * @returns {boolean} meeting experience is bad.
+     * @returns {boolean} rtp transmission is having problems.
      */
-    _experienceIsBad(packetLossIntervalThreshold, scoreThreshold, timeThreshold) {
+    _transmissionHasProblems(packetLossIntervalThreshold, scoreThreshold, timeThreshold) {
         const hasPacketLoss = this._packetLossDuringIntervalCount > packetLossIntervalThreshold;
 
         const audioProducer = this._getProducer("audio");
@@ -120,7 +118,7 @@ export default class MeetingExperienceDetector extends EventEmitter {
     addProducerScore(producerId, kind, score) {
         this._logger.debug(LOG_PREFIX + "addProducerScore: [id: %s, kind: %s, score: %s]", producerId, kind, score);
         if (!kind) return this._logger.error(LOG_PREFIX + "addProducerScore: kind missing");
-        if (!score) return this._logger.error(LOG_PREFIX + "addProducerScore: score missing");
+        if (typeof score !== "number") return this._logger.error(LOG_PREFIX + "addProducerScore: score missing");
 
         let p = this._producerStats.get(producerId);
         if (p) p.setScore(score);
@@ -146,7 +144,7 @@ export default class MeetingExperienceDetector extends EventEmitter {
         this._logger.debug(LOG_PREFIX + "addConsumerScore: [id: %s, kind: %s, score: %s]", consumerId, kind, score);
         if (!kind) return this._logger.error(LOG_PREFIX + "addConsumerScore: kind missing");
         if (!consumerId) return this._logger.error(LOG_PREFIX + "addConsumerScore: consumerId missing");
-        if (!score) return this._logger.error(LOG_PREFIX + "addConsumerScore: score missing");
+        if (typeof score !== "number") return this._logger.error(LOG_PREFIX + "addConsumerScore: score missing");
 
         let c = this._consumerStats.get(consumerId);
         if (c) c.setScore(score);
@@ -213,5 +211,44 @@ export default class MeetingExperienceDetector extends EventEmitter {
         if (!deltaPacketsLost) return 0;
         const deltaPacketsRecv = rtpStats.packetsReceived - prevRtpStats.totalPacketsRecv;
         return deltaPacketsLost / deltaPacketsRecv;
+    }
+}
+
+class ConsumerStats {
+    constructor(id, kind) {
+        this.id = id;
+        this.kind = kind;
+        this._score = null;
+    }
+
+    setScore({ score, producerScores, producerScore }) {
+        this._score = {
+            timestamp: Date.now(),
+            score,
+            producerScore,
+            producerScores,
+        };
+    }
+}
+
+class ProducerStats {
+    constructor(id, kind) {
+        this.id = id;
+        this.kind = kind;
+        this.score = 10;
+        this.scoreTimestamp = Date.now();
+    }
+
+    setScore(score) {
+        this.score = score;
+        this.scoreTimestamp = Date.now();
+    }
+
+    hasScoreLessThan(scoreThreshold, timeThreshold) {
+        return this.score < scoreThreshold && Date.now() - this.scoreTimestamp > timeThreshold;
+    }
+
+    hasScore(score, timeThreshold) {
+        return this.score === score && Date.now() - this.scoreTimestamp > timeThreshold;
     }
 }

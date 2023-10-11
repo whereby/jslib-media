@@ -58,11 +58,13 @@ export default class VegaConnection extends EventEmitter {
 
     _onClose() {
         this.logger.log("VegaConnectionManager: Disconnected");
+        console.log("wss debug: sfu disconnect");
 
         this._tearDown();
     }
 
     _onError(error) {
+        console.log("wss debug: sfu error");
         this.logger.log("VegaConnectionManager: Error", error);
     }
 

@@ -13,8 +13,8 @@ import { getHandler } from "../utils/getHandler";
 import { v4 as uuidv4 } from "uuid";
 import createMicAnalyser from "./VegaMicAnalyser";
 import { maybeTurnOnly } from "../utils/transportSettings";
-import MeetingExperienceDetector from "./MeetingExperience/MeetingExperienceDetector";
-import { calculateLocalRtpQuality, calculateRemoteRtpQuality } from "./MeetingExperience/helpers";
+import VegaTransmissionAnalyser from "./VegaTransmissionAnalyser";
+import { getAverageScore } from "../utils/getAverageScore";
 
 const logger = console;
 const browserName = adapter.browserDetails.browser;
@@ -118,19 +118,19 @@ export default class VegaRtcManager {
         this._rtpThrottled = false;
 
         const { rtpThrottle } = this._features;
-        this._initMeetingExperienceDetector(rtpThrottle);
+        this._initVegaTransmissionAnalyser(rtpThrottle);
     }
 
-    _initMeetingExperienceDetector(rtpThrottle) {
-        logger.debug("initMeetingExperienceDetector() [rtpThrottle: %s", rtpThrottle);
+    _initVegaTransmissionAnalyser(rtpThrottle) {
+        logger.debug("initVegaTransmissionAnalyser() [rtpThrottle: %s", rtpThrottle);
         if (!rtpThrottle)
-            return logger.warn("Refusing to init MeetingExperienceDetector, rtpThrottle feature not enabled.");
+            return logger.warn("Refusing to init VegaTransmissionAnalyser, rtpThrottle feature not enabled.");
 
-        this._meetingExperienceDetector = new MeetingExperienceDetector(logger);
-        this._meetingExperienceDetector.on("meetingExperienceChanged", ({ meetingExperience }) => {
-            if (meetingExperience === "bad" && !this._rtpThrottled) this._doRTPThrottle(rtpThrottle);
-            if (meetingExperience === "good" && this._rtpThrottled) this._stopRTPThrottle(rtpThrottle);
-            this._rtpThrottled = meetingExperience === "bad" ? true : false;
+        this._vegaTransmissionAnalyser = new VegaTransmissionAnalyser(logger);
+        this._vegaTransmissionAnalyser.on("transmissionChanged", (transmission) => {
+            if (transmission === "problems" && !this._rtpThrottled) this._doRTPThrottle(rtpThrottle);
+            if (transmission === "ok" && this._rtpThrottled) this._stopRTPThrottle(rtpThrottle);
+            this._rtpThrottled = transmission === "problems" ? true : false;
             this._emitToPWA(CONNECTION_STATUS.EVENTS.RTP_THROTTLED, { rtpThrottled: this._rtpThrottled });
         });
     }
@@ -140,7 +140,7 @@ export default class VegaRtcManager {
         if (!rtpThrottle) return logger.warn("Refusing to throttle RTP, rtpThrottle feature not enabled.");
 
         // Introduce less ambitious bitrates for outgoing audio.
-        if (this._micProducer) {
+        if (this._micProducer && this._micProducer.rtpSender) {
             const currentRtpParameters = this._micProducer.rtpSender.getParameters();
             const currentEncodings = currentRtpParameters.encodings;
             if (currentEncodings.length > 0) {
@@ -158,7 +158,7 @@ export default class VegaRtcManager {
         }
 
         // Introduce less ambitous bitrates for outgoing video.
-        if (this._webcamProducer) {
+        if (this._webcamProducer && this._webcamProducer.rtpSender) {
             const currentRtpParameters = this._webcamProducer.rtpSender.getParameters();
             const currentEncodings = currentRtpParameters.encodings;
             if (currentEncodings.length > 0) {
@@ -186,7 +186,7 @@ export default class VegaRtcManager {
 
         // Remove restrictions.
         // TODO: can we do this in a better way, e.g. remove maxBitrate instead of setting a high value.
-        if (this._micProducer) {
+        if (this._micProducer && this._micProducer.rtpSender) {
             const currentRtpParameters = this._micProducer.rtpSender.getParameters();
             const currentEncodings = currentRtpParameters.encodings;
             if (currentEncodings.length > 0) {
@@ -205,7 +205,7 @@ export default class VegaRtcManager {
 
         // Remove restrictions.
         // TODO: can we do this in a better way, e.g. remove maxBitrate and maxFramerate instead of setting high values.
-        if (this._webcamProducer) {
+        if (this._webcamProducer && this._webcamProducer.rtpSender) {
             const currentRtpParameters = this._webcamProducer.rtpSender.getParameters();
             const currentEncodings = currentRtpParameters.encodings;
             if (currentEncodings.length > 0) {
@@ -310,9 +310,9 @@ export default class VegaRtcManager {
             this._reconnectTimeOut = setTimeout(() => this._connect(), 1000);
         }
 
-        if (this._meetingExperienceDetector) {
-            this._meetingExperienceDetector.removeAllListeners();
-            this._meetingExperienceDetector.close();
+        if (this._vegaTransmissionAnalyser) {
+            this._vegaTransmissionAnalyser.removeAllListeners();
+            this._vegaTransmissionAnalyser.close();
         }
     }
 
@@ -338,8 +338,7 @@ export default class VegaRtcManager {
 
             await Promise.all([this._createTransport(true), this._createTransport(false)]);
 
-            if (this._meetingExperienceDetector)
-                this._meetingExperienceDetector.attachTransport(this._receiveTransport);
+            if (this._vegaTransmissionAnalyser) this._vegaTransmissionAnalyser.attachTransport(this._receiveTransport);
 
             const mediaPromises = [];
 
@@ -571,7 +570,7 @@ export default class VegaRtcManager {
                     if (producer.appData.localClosed)
                         this._vegaConnection?.message("closeProducers", { producerIds: [producer.id] });
 
-                    if (this._meetingExperienceDetector) this._meetingExperienceDetector.removeProducer(producer.id);
+                    if (this._vegaTransmissionAnalyser) this._vegaTransmissionAnalyser.removeProducer(producer.id);
 
                     this._micProducer = null;
                     this._micProducerPromise = null;
@@ -1530,11 +1529,10 @@ export default class VegaRtcManager {
         const consumer = this._consumers.get(consumerId);
 
         if (!consumer) return;
-        if (this._rtpThrottled) return logger.warn(`Refusing to resume consumer ${consumerId}, RTP is throttled.`);
 
         consumer.appData.remotePaused = false;
 
-        if (!consumer.appData.localPaused) {
+        if (!consumer.appData.localPaused || this._rtpThrottled) {
             consumer.resume();
         }
     }
@@ -1582,51 +1580,64 @@ export default class VegaRtcManager {
     }
 
     _onProducerScore({ producerId, kind, score }) {
-        const newScore = calculateLocalRtpQuality(score);
-        if (kind === "video" && this._webcamProducer) {
-            if (this._webcamProducer.appData.score === newScore) return;
-            this._webcamProducer.appData.score = newScore;
-        }
-        if (kind === "audio" && this._micProducer) {
-            if (this._micProducer.appData.score === newScore) return;
-            this._micProducer.appData.score = newScore;
-        }
-        if (this._webcamProducer && kind === "audio") return;
-        this._emitToPWA(CONNECTION_STATUS.EVENTS.LOCAL_RTP_TRANSMISSION_QUALITY, {
-            quality: newScore,
-        });
+        try {
+            const newScore = getAverageScore(score);
+            if (kind === "video" && this._webcamProducer) {
+                if (this._webcamProducer.appData.score === newScore) return;
+                this._webcamProducer.appData.score = newScore;
+            }
+            if (kind === "audio" && this._micProducer) {
+                if (this._micProducer.appData.score === newScore) return;
+                this._micProducer.appData.score = newScore;
+            }
+            if (this._webcamProducer && kind === "audio") return;
+            this._emitToPWA(CONNECTION_STATUS.EVENTS.LOCAL_RTP_TRANSMISSION_QUALITY, {
+                quality: newScore,
+            });
 
-        if (this._meetingExperienceDetector)
-            this._meetingExperienceDetector.addProducerScore(producerId, kind, newScore);
+            if (this._vegaTransmissionAnalyser)
+                this._vegaTransmissionAnalyser.addProducerScore(producerId, kind, newScore);
+        } catch (error) {
+            logger.error(`error on receiving producer score: ${error}`);
+        }
     }
 
     _onConsumerScore({ consumerId, kind, score }) {
-        const c = this._consumers.get(consumerId);
-        if (!c) return;
+        try {
+            const c = this._consumers.get(consumerId);
+            if (!c) return;
+            const { sourceClientId } = c.appData;
+            const { videoScore, audioScore } = this._getOrCreateClientState(sourceClientId);
+            const newScore = getAverageScore(score.producerScores);
+            if (kind === "audio" && audioScore === newScore) return;
+            if (kind === "video" && videoScore === newScore) return;
 
-        const newScore = calculateRemoteRtpQuality(score.producerScores);
-        if (kind === "video") {
-            if (c.appData.videoScore === newScore) return;
-            c.appData.videoScore = newScore;
-        }
-        if (kind === "audio") {
-            if (c.appData.audioScore === newScore || (c.appData.videoScore && kind === "audio"))
+            if (kind === "video") {
+                if (c.appData.videoScore === newScore) return;
+                c.appData.videoScore = newScore;
+            }
+            if (kind === "audio") {
+                if (c.appData.audioScore === newScore) return;
                 c.appData.audioScore = newScore;
-        }
-        this._emitToPWA(CONNECTION_STATUS.EVENTS.REMOTE_RTP_TRANSMISSION_QUALITY, {
-            clientId: c.appData.sourceClientId,
-            quality: newScore,
-        });
+            }
 
-        if (this._meetingExperienceDetector)
-            this._meetingExperienceDetector.addConsumerScore(consumerId, kind, newScore);
+            this._emitToPWA(CONNECTION_STATUS.EVENTS.REMOTE_RTP_TRANSMISSION_QUALITY, {
+                clientId: c.appData.sourceClientId,
+                quality: newScore,
+            });
+
+            if (this._vegaTransmissionAnalyser)
+                this._vegaTransmissionAnalyser.addConsumerScore(consumerId, kind, score.score);
+        } catch (error) {
+            logger.error(`error on receiving consumer score: ${error}`);
+        }
     }
 
     _consumerClosedCleanup(consumer) {
         const { sourceClientId: clientId, screenShare } = consumer.appData;
         const clientState = this._getOrCreateClientState(clientId);
         const stream = screenShare ? clientState.screenStream : clientState.webcamStream;
-        if (this._meetingExperienceDetector) this._meetingExperienceDetector.removeConsumer(consumer.id);
+        if (this._vegaTransmissionAnalyser) this._vegaTransmissionAnalyser.removeConsumer(consumer.id);
 
         if (!stream) return;
 
@@ -1738,6 +1749,8 @@ export default class VegaRtcManager {
                 screenStream: null,
                 screenShareStreamId: null,
                 camStreamId: null,
+                videoScore: 0,
+                audioScore: 0,
             };
 
             this._clientStates.set(clientId, clientState);
