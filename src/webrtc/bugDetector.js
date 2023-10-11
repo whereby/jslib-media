@@ -11,7 +11,7 @@ import adapter from "webrtc-adapter";
 export function detectMicrophoneNotWorking(pc) {
     if (
         adapter.browserDetails.browser !== "chrome" ||
-        adapter.browserDetails.browser < 58 || // legacy getStats is no longer supported.
+        adapter.browserDetails.browser < 58 || // legacy getStats is no longer supported
         pc.signalingState === "closed"
     ) {
         return Promise.resolve(false);
