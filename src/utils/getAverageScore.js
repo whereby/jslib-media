@@ -14,6 +14,6 @@ export const getAverageScore = (scores) => {
             if (typeof score === "number" && score > 0) divisor++;
         }
     });
-    if (totalScore == 0 || divisor === 0) return 0;
+    if (totalScore === 0 || divisor === 0) return 0;
     return Math.ceil(totalScore / divisor);
 };

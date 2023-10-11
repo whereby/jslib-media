@@ -1,5 +1,44 @@
 import EventEmitter from "events";
 
+class ConsumerStats {
+    constructor(id, kind) {
+        this.id = id;
+        this.kind = kind;
+        this._score = null;
+    }
+
+    setScore({ score, producerScores, producerScore }) {
+        this._score = {
+            timestamp: Date.now(),
+            score,
+            producerScore,
+            producerScores,
+        };
+    }
+}
+
+class ProducerStats {
+    constructor(id, kind) {
+        this.id = id;
+        this.kind = kind;
+        this.score = 10;
+        this.scoreTimestamp = Date.now();
+    }
+
+    setScore(score) {
+        this.score = score;
+        this.scoreTimestamp = Date.now();
+    }
+
+    hasScoreLessThan(scoreThreshold, timeThreshold) {
+        return this.score < scoreThreshold && Date.now() - this.scoreTimestamp > timeThreshold;
+    }
+
+    hasScore(score, timeThreshold) {
+        return this.score === score && Date.now() - this.scoreTimestamp > timeThreshold;
+    }
+}
+
 const LOG_PREFIX = "VegaTransmissionAnalyser: ";
 const PACKET_LOSS_THRESHOLD = 0.03;
 
@@ -211,44 +250,5 @@ export default class VegaTransmissionAnalyser extends EventEmitter {
         if (!deltaPacketsLost) return 0;
         const deltaPacketsRecv = rtpStats.packetsReceived - prevRtpStats.totalPacketsRecv;
         return deltaPacketsLost / deltaPacketsRecv;
-    }
-}
-
-class ConsumerStats {
-    constructor(id, kind) {
-        this.id = id;
-        this.kind = kind;
-        this._score = null;
-    }
-
-    setScore({ score, producerScores, producerScore }) {
-        this._score = {
-            timestamp: Date.now(),
-            score,
-            producerScore,
-            producerScores,
-        };
-    }
-}
-
-class ProducerStats {
-    constructor(id, kind) {
-        this.id = id;
-        this.kind = kind;
-        this.score = 10;
-        this.scoreTimestamp = Date.now();
-    }
-
-    setScore(score) {
-        this.score = score;
-        this.scoreTimestamp = Date.now();
-    }
-
-    hasScoreLessThan(scoreThreshold, timeThreshold) {
-        return this.score < scoreThreshold && Date.now() - this.scoreTimestamp > timeThreshold;
-    }
-
-    hasScore(score, timeThreshold) {
-        return this.score === score && Date.now() - this.scoreTimestamp > timeThreshold;
     }
 }
