@@ -2,6 +2,7 @@ import { io } from "socket.io-client";
 import adapter from "webrtc-adapter";
 
 const DEFAULT_SOCKET_PATH = "/protocol/socket.io/v4";
+const ANTI_DRAINING_SOCKET_TIME_LIMIT = 1000 * 60 * 55; // 55 minutes
 
 /**
  * Wrapper class that extends the Socket.IO client library.
@@ -20,6 +21,9 @@ export default class ServerSocket {
         });
         this._socket.io.on("reconnect", () => {
             this._socket.sendBuffer = [];
+            if (this._wasConnectedUsingWebsocket) {
+                this._socketExpirationTime = new Date(Date.now() + ANTI_DRAINING_SOCKET_TIME_LIMIT);
+            }
         });
         this._socket.io.on("reconnect_attempt", () => {
             if (this._wasConnectedUsingWebsocket) {
@@ -37,6 +41,16 @@ export default class ServerSocket {
             const transport = this.getTransport();
             if (transport === "websocket") {
                 this._wasConnectedUsingWebsocket = true;
+                this._socketExpirationTime = new Date(Date.now() + ANTI_DRAINING_SOCKET_TIME_LIMIT);
+            }
+        });
+        this._socket.io.on("ping", () => {
+            if (
+                this._wasConnectedUsingWebsocket &&
+                this._socket.io.opts.reconnection !== false &&
+                this._socketExpirationTime < new Date()
+            ) {
+                this._socket.io.engine.close(); // Force reconnection to avoid any potential Signal Server draining
             }
         });
     }
