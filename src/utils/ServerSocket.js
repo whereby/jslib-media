@@ -1,5 +1,7 @@
 import { io } from "socket.io-client";
 import adapter from "webrtc-adapter";
+import { ReconnectManager } from "./ReconnectManager";
+import { PROTOCOL_RESPONSES } from "../model/protocol";
 
 const DEFAULT_SOCKET_PATH = "/protocol/socket.io/v4";
 
@@ -33,12 +35,17 @@ export default class ServerSocket {
                 this._socket.io.opts.transports = ["websocket", "polling"];
             }
         });
+        this._reconnectManager = new ReconnectManager(this._socket)
         this._socket.on("connect", () => {
             const transport = this.getTransport();
             if (transport === "websocket") {
                 this._wasConnectedUsingWebsocket = true;
             }
         });
+    }
+
+    setRtcManager(rtcManager) {
+        this._reconnectManager.rtcManager = rtcManager 
     }
 
     connect() {
@@ -99,6 +106,11 @@ export default class ServerSocket {
      * @returns {function} Function to deregister the listener.
      */
     on(eventName, handler) {
+        if ([PROTOCOL_RESPONSES.ROOM_JOINED, PROTOCOL_RESPONSES.CLIENT_LEFT, PROTOCOL_RESPONSES.NEW_CLIENT].includes(eventName)) {
+            this._reconnectManager.on(eventName, handler)
+            return () => this._reconnectManager.removeListener(eventName, handler)
+        }
+
         this._socket.on(eventName, handler);
 
         return () => {
