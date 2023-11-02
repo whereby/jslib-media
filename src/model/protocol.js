@@ -135,5 +135,5 @@ export const KNOCK_MESSAGES = {
 };
 
 export const PROTOCOL_EVENTS = {
-    PENDING_CLIENT_LEFT: "pending_client_left"
-}
+    PENDING_CLIENT_LEFT: "pending_client_left",
+};

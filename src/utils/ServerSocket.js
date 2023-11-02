@@ -35,7 +35,7 @@ export default class ServerSocket {
                 this._socket.io.opts.transports = ["websocket", "polling"];
             }
         });
-        this._reconnectManager = new ReconnectManager(this._socket)
+        this._reconnectManager = new ReconnectManager(this._socket);
         this._socket.on("connect", () => {
             const transport = this.getTransport();
             if (transport === "websocket") {
@@ -45,7 +45,7 @@ export default class ServerSocket {
     }
 
     setRtcManager(rtcManager) {
-        this._reconnectManager.rtcManager = rtcManager 
+        this._reconnectManager.rtcManager = rtcManager;
     }
 
     connect() {
@@ -106,9 +106,13 @@ export default class ServerSocket {
      * @returns {function} Function to deregister the listener.
      */
     on(eventName, handler) {
-        if ([PROTOCOL_RESPONSES.ROOM_JOINED, PROTOCOL_RESPONSES.CLIENT_LEFT, PROTOCOL_RESPONSES.NEW_CLIENT].includes(eventName)) {
-            this._reconnectManager.on(eventName, handler)
-            return () => this._reconnectManager.removeListener(eventName, handler)
+        if (
+            [PROTOCOL_RESPONSES.ROOM_JOINED, PROTOCOL_RESPONSES.CLIENT_LEFT, PROTOCOL_RESPONSES.NEW_CLIENT].includes(
+                eventName
+            )
+        ) {
+            this._reconnectManager.on(eventName, handler);
+            return () => this._reconnectManager.removeListener(eventName, handler);
         }
 
         this._socket.on(eventName, handler);
