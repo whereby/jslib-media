@@ -133,3 +133,7 @@ export const KNOCK_MESSAGES = {
         REJECTED: "rejected",
     },
 };
+
+export const PROTOCOL_EVENTS = {
+    PENDING_CLIENT_LEFT: "pending_client_left"
+}
