@@ -31,22 +31,21 @@ export class ReconnectManager extends EventEmitter {
 
         const allStats = await getUpdatedStats();
 
-        payload.room.clients = payload.room.clients.filter((newClient) => {
+        payload.room.clients.forEach((newClient) => {
+            if (newClient.id === payload.selfId) return
             const oldClient = this.rtcManager.peerConnections[newClient.id];
             if (oldClient) {
-                let glitchFree = true;
                 // TODO: verify we want to try and keep it glitch-free when it comes to media
                 // rtcManager? look at streams recieved in newClient.streamIds, e.g. [0, 'id_of_screenshare_stream']?
 
                 // verify the client is still active (not removed from other end)
-                if (!this._isClientMediaActive(allStats, newClient.id)) glitchFree = false;
+                if (!this._isClientMediaActive(allStats, newClient.id)) return;
 
                 // TODO: handle if these values have changed
-                // newClient.isAudioEnabled;
-                // newClient.isVideoEnabled;
-                return glitchFree;
+                // oldClient.isAudioEnabled = newClient.isAudioEnabled;
+                // newClient.isVideoEnabled = newClient.isAudioEnabled;
+                newClient.mergeWithOldClientState = true
             }
-            return false;
         });
 
         this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
