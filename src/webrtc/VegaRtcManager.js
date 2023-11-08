@@ -1650,13 +1650,14 @@ export default class VegaRtcManager {
         let webcamChanged;
         let screenShareChanged;
 
+        // Verify webcam against clientState.
         if (webcam) {
-            webcamChanged = clientState.webcamStream.active;
+            webcamChanged = !clientState.webcamStream.active;
         } else {
             webcamChanged = clientState.webcamStream.active;
         }
 
-        // Check if screenShare has changed.
+        // Verify screenShare against clientState.
         if (screenShare) {
             screenShareChanged = !clientState.hasEmittedScreenStream;
         } else {
