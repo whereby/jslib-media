@@ -1535,7 +1535,7 @@ export default class VegaRtcManager {
         } = clientState;
 
         // Need to pause/resume any consumers that are part of a stream that has been
-        // accepted or dosconnected by the PWA
+        // accepted or disconnected by the PWA
         const toPauseConsumers = [];
         const toResumeConsumers = [];
 
@@ -1636,5 +1636,33 @@ export default class VegaRtcManager {
 
     setMicAnalyserParams(params) {
         this._micAnalyser?.setParams(params);
+    }
+
+    hasClient(clientId) {
+        return this._clientStates.has(clientId);
+    }
+
+    verifyClientStreams({ clientId, webcam, screenShare }) {
+        const clientState = this._clientStates.get(clientId);
+
+        if (!clientState) throw new Error(`Client ${clientId} not found`);
+
+        let webcamChanged;
+        let screenShareChanged;
+
+        if (webcam) {
+            webcamChanged = clientState.webcamStream.active;
+        } else {
+            webcamChanged = clientState.webcamStream.active;
+        }
+
+        // Check if screenShare has changed.
+        if (screenShare) {
+            screenShareChanged = !clientState.hasEmittedScreenStream;
+        } else {
+            screenShareChanged = clientState.hasEmittedScreenStream;
+        }
+
+        return webcamChanged || screenShareChanged;
     }
 }

@@ -31,22 +31,35 @@ export class ReconnectManager extends EventEmitter {
 
         const allStats = await getUpdatedStats();
 
+        const clientsToIgnore = [];
+
         payload.room.clients.forEach((newClient) => {
-            if (newClient.id === payload.selfId) return
-            const oldClient = this.rtcManager.peerConnections[newClient.id];
-            if (oldClient) {
-                // TODO: verify we want to try and keep it glitch-free when it comes to media
-                // rtcManager? look at streams recieved in newClient.streamIds, e.g. [0, 'id_of_screenshare_stream']?
+            if (newClient.id === payload.selfId) return;
+
+            // Any client pending to leave will be removed from payload.
+            if (newClient.isPendingToLeave) {
+                return clientsToIgnore.push(newClient.id);
+            }
+
+            if (this.rtcManager.hasClient(newClient.id)) {
+                // TODO: verify that screenshare or camera stream hasn't changed.
+                if (
+                    this.rtcManager.verifyClientStreams({
+                        clientId: newClient.id,
+                        webcam: newClient.isVideoEnabled,
+                        screenShare: newClient.streams.length > 1,
+                    })
+                )
+                    return;
 
                 // verify the client is still active (not removed from other end)
                 if (!this._isClientMediaActive(allStats, newClient.id)) return;
 
-                // TODO: handle if these values have changed
-                // oldClient.isAudioEnabled = newClient.isAudioEnabled;
-                // newClient.isVideoEnabled = newClient.isAudioEnabled;
-                newClient.mergeWithOldClientState = true
+                newClient.mergeWithOldClientState = true;
             }
         });
+
+        payload.room.clients = payload.room.clients.filter((c) => !clientsToIgnore.includes(c.id));
 
         this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
     }
@@ -60,11 +73,14 @@ export class ReconnectManager extends EventEmitter {
             this._pendingClientLeft.delete(payload.clientId);
         }
 
+        // Old RTCManager only takes one argument, so rest is ignored.
+        this.rtcManager.disconnect(payload.clientId, /* activeBreakout */ null, payload.eventClaim);
+
+        // TODO: is it fine to retransmit client_left if we already did it following a pending_client_left?
         this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
     }
 
     _onPendingClientLeft(payload) {
-        // TODO: handle eventClaims, perhaps send from signal-server at pending disconnect?
         this._pendingClientLeft.set(payload.clientId, {
             timeout: setTimeout(() => this._abortIfNotActive(payload), 500),
             attempts: 0,
@@ -80,7 +96,7 @@ export class ReconnectManager extends EventEmitter {
             return;
         }
 
-        this.emit("new_client", payload);
+        this.emit(PROTOCOL_RESPONSES.NEW_CLIENT, payload);
     }
 
     _isClientMediaActive(stats, clientId) {
