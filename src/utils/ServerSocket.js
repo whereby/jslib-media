@@ -9,7 +9,8 @@ const DEFAULT_SOCKET_PATH = "/protocol/socket.io/v4";
  * Wrapper class that extends the Socket.IO client library.
  */
 export default class ServerSocket {
-    constructor(hostName, optionsOverrides) {
+    constructor(hostName, optionsOverrides, glitchFree) {
+        this.glitchFree = glitchFree;
         this._socket = io(hostName, {
             path: DEFAULT_SOCKET_PATH,
             randomizationFactor: 0.5,
@@ -35,7 +36,9 @@ export default class ServerSocket {
                 this._socket.io.opts.transports = ["websocket", "polling"];
             }
         });
-        this._reconnectManager = new ReconnectManager(this._socket);
+
+        if (this.glitchFree) this._reconnectManager = new ReconnectManager(this._socket);
+
         this._socket.on("connect", () => {
             const transport = this.getTransport();
             if (transport === "websocket") {
@@ -45,7 +48,11 @@ export default class ServerSocket {
     }
 
     setRtcManager(rtcManager) {
-        this._reconnectManager.rtcManager = rtcManager;
+        if (this.glitchFree) {
+            if (!this._reconnectManager) throw new Error("ReconnectManager is missing");
+
+            this._reconnectManager.rtcManager = rtcManager;
+        }
     }
 
     connect() {
@@ -106,13 +113,17 @@ export default class ServerSocket {
      * @returns {function} Function to deregister the listener.
      */
     on(eventName, handler) {
-        if (
-            [PROTOCOL_RESPONSES.ROOM_JOINED, PROTOCOL_RESPONSES.CLIENT_LEFT, PROTOCOL_RESPONSES.NEW_CLIENT].includes(
-                eventName
-            )
-        ) {
-            this._reconnectManager.on(eventName, handler);
-            return () => this._reconnectManager.removeListener(eventName, handler);
+        // Intercept certain events if glitch-free is enabled.
+        if (this.glitchFree) {
+            if (
+                [
+                    PROTOCOL_RESPONSES.ROOM_JOINED,
+                    PROTOCOL_RESPONSES.CLIENT_LEFT,
+                    PROTOCOL_RESPONSES.NEW_CLIENT,
+                ].includes(eventName)
+            ) {
+                return this._interceptEvent(eventName, handler);
+            }
         }
 
         this._socket.on(eventName, handler);
@@ -140,5 +151,17 @@ export default class ServerSocket {
      */
     off(eventName, handler) {
         this._socket.off(eventName, handler);
+    }
+
+    /**
+     * Intercept event and let ReconnectManager handle them.
+     */
+    _interceptEvent(eventName, handler) {
+        if (!this._reconnectManager) throw new Error("ReconnectMangager is missing");
+
+        this._reconnectManager.on(eventName, handler);
+        return () => {
+            if (this._reconnectManager) this._reconnectManager.removeListener(eventName, handler);
+        };
     }
 }
