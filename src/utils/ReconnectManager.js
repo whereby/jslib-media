@@ -5,11 +5,11 @@ import { PROTOCOL_EVENTS, PROTOCOL_RESPONSES } from "../model/protocol";
 const PEER_CONNECTION_RENEW_THRESHOLD = 2500; // reconnects completed withing this threshold can be "glitch-free"
 
 export class ReconnectManager extends EventEmitter {
-    constructor(socket) {
+    constructor(socket, logger = console) {
         super();
         this._socket = socket;
-        this._pendingClientLeft = new Map();
-        this._signalConnectTime = undefined;
+        this._logger = logger;
+        this._clients = new Map();
         this._signalDisconnectTime = undefined;
         this.rtcManager = undefined;
 
@@ -17,10 +17,17 @@ export class ReconnectManager extends EventEmitter {
             this._signalDisconnectTime = Date.now();
         });
 
+        // We intercept these events and take responsiblity for forwarding them.
         socket.on(PROTOCOL_RESPONSES.ROOM_JOINED, (payload) => this._onRoomJoined(payload));
         socket.on(PROTOCOL_RESPONSES.NEW_CLIENT, (payload) => this._onNewClient(payload));
         socket.on(PROTOCOL_RESPONSES.CLIENT_LEFT, (payload) => this._onClientLeft(payload));
         socket.on(PROTOCOL_EVENTS.PENDING_CLIENT_LEFT, (payload) => this._onPendingClientLeft(payload));
+
+        // We gather information from these event but they will also be forwarded.
+        socket.on(PROTOCOL_RESPONSES.AUDIO_ENABLED, (payload) => this._onAudioEnabled(payload));
+        socket.on(PROTOCOL_RESPONSES.VIDEO_ENABLED, (payload) => this._onVideoEnabled(payload));
+        socket.on(PROTOCOL_RESPONSES.SCREENSHARE_STARTED, (payload) => this._onScreenshareChanged(payload, true));
+        socket.on(PROTOCOL_RESPONSES.SCREENSHARE_STOPPED, (payload) => this._onScreenshareChanged(payload, false));
     }
 
     async _onRoomJoined(payload) {
@@ -34,28 +41,47 @@ export class ReconnectManager extends EventEmitter {
         const clientsToIgnore = [];
 
         payload.room.clients.forEach((newClient) => {
-            if (newClient.id === payload.selfId) return;
+            try {
+                if (newClient.id === payload.selfId) return;
 
-            // Any client pending to leave will be removed from payload.
-            if (newClient.isPendingToLeave) {
-                return clientsToIgnore.push(newClient.id);
-            }
+                // Any client pending to leave will be removed from payload.
+                if (newClient.isPendingToLeave) {
+                    return clientsToIgnore.push(newClient.id);
+                }
 
-            if (this.rtcManager.hasClient(newClient.id)) {
-                // TODO: verify that screenshare or camera stream hasn't changed.
+                // Maybe add client to state
+                if (!this._clients.has(newClient.id)) {
+                    this._addClientToState(newClient);
+                    return;
+                }
+
+                // Verify that rtcManager knows about the client
+                if (!this.rtcManager.hasClient(newClient.id)) {
+                    return;
+                }
+
+                // Verify what the client state hasn't changed
                 if (
-                    this.rtcManager.verifyClientStreams({
+                    this._hasClientStateChanged({
                         clientId: newClient.id,
                         webcam: newClient.isVideoEnabled,
+                        mic: newClient.isAudioEnabled,
                         screenShare: newClient.streams.length > 1,
                     })
-                )
+                ) {
                     return;
+                }
 
-                // verify the client is still active (not removed from other end)
-                if (!this._isClientMediaActive(allStats, newClient.id)) return;
+                if (this._wasClientSendingMedia(newClient.id)) {
+                    // verify the client media is still flowing (not stopped from other end)
+                    if (!this._isClientMediaActive(allStats, newClient.id)) {
+                        return;
+                    }
+                }
 
                 newClient.mergeWithOldClientState = true;
+            } catch (error) {
+                this._logger.error("Failed to evaluate if we should merge client state %o", error);
             }
         });
 
@@ -65,40 +91,91 @@ export class ReconnectManager extends EventEmitter {
     }
 
     _onClientLeft(payload) {
-        const c = this._pendingClientLeft.get(payload.clientId);
+        const { clientId } = payload;
+        const c = this._clients.get(clientId);
 
-        // if we have a pending_client_left for this clientId, remove it
+        // if this client is pending to leave, then remove it
         if (c) {
-            clearTimeout(payload.clientId);
-            this._pendingClientLeft.delete(payload.clientId);
+            clearTimeout(c.timeout);
+            this._clients.delete(clientId);
         }
 
         // Old RTCManager only takes one argument, so rest is ignored.
-        this.rtcManager.disconnect(payload.clientId, /* activeBreakout */ null, payload.eventClaim);
+        this.rtcManager.disconnect(clientId, /* activeBreakout */ null, payload.eventClaim);
 
         // TODO: is it fine to retransmit client_left if we already did it following a pending_client_left?
         this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
     }
 
     _onPendingClientLeft(payload) {
-        this._pendingClientLeft.set(payload.clientId, {
-            timeout: setTimeout(() => this._abortIfNotActive(payload), 500),
-            attempts: 0,
-        });
+        const { clientId } = payload;
+        const client = this._clients.get(clientId);
+
+        if (!client) throw new Error(`client ${clientId} not found`);
+
+        client.isPendingToLeave = true;
+        if (this._wasClientSendingMedia(clientId)) {
+            (client.checkActiveMediaAttempts = 0),
+                (client.timeoutHandler = setTimeout(() => this._abortIfNotActive(payload), 500));
+        }
     }
 
     _onNewClient(payload) {
-        const c = this._pendingClientLeft.get(payload.client.id);
+        const {
+            client: { id: clientId, deviceId },
+        } = payload;
 
-        if (c) {
-            clearTimeout(c.timeout);
-            this._pendingClientLeft.delete(payload.client.id);
+        let client = this._clients.get(clientId);
+        if (client && client.isPendingToLeave) {
+            clearTimeout(client.timeoutHandler);
+            client.isPendingToLeave = false;
             return;
         }
 
+        client = this._getPendingClientByDeviceId(deviceId);
+        if (client) {
+            clearTimeout(client.isPendingToLeave.timeout);
+            client.isPendingToLeave = undefined;
+            this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, { clientId: client.clientId });
+        }
+
+        this._addClientToState(payload.client);
         this.emit(PROTOCOL_RESPONSES.NEW_CLIENT, payload);
     }
 
+    // evaluate if we should send send client_left before getting it from signal-server
+    async _abortIfNotActive(payload) {
+        const { clientId } = payload;
+
+        let client = this._clients.get(clientId);
+        if (!client.isPendingToLeave) return;
+
+        client.checkActiveMediaAttempts++;
+        if (client.checkActiveMediaAttempts > 3) {
+            return;
+        }
+
+        const stillActive = await this._checkIsActive(clientId);
+        if (stillActive) {
+            client.timeoutHandler = setTimeout(() => this._abortIfNotActive(payload), 500);
+            return;
+        }
+
+        client = this._clients.get(clientId);
+        if (client.isPendingToLeave) {
+            clearTimeout(client.timeoutHandler);
+            this._clients.delete(clientId);
+            this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
+        }
+    }
+
+    // check if client is active
+    async _checkIsActive(clientId) {
+        const allStats = await getUpdatedStats();
+        return this._isClientMediaActive(allStats, clientId);
+    }
+
+    // checks if client has bitrates for all tracks
     _isClientMediaActive(stats, clientId) {
         const clientStats = stats?.[clientId];
         let isActive = false;
@@ -113,35 +190,71 @@ export class ReconnectManager extends EventEmitter {
         return isActive;
     }
 
-    // checks stats if client is active by looking at bitrates for all tracks
-    // TODO: move this to rtcmanager?
-    async _checkIsActive(clientId) {
-        const allStats = await getUpdatedStats();
-        return this._isClientMediaActive(allStats, clientId);
+    _onAudioEnabled(payload) {
+        const { clientId, isAudioEnabled } = payload;
+
+        const state = this._clients.get(clientId);
+        state.isAudioEnabled = isAudioEnabled;
     }
 
-    async _abortIfNotActive(payload) {
+    _onVideoEnabled(payload) {
+        const { clientId, isVideoEnabled } = payload;
+
+        const state = this._clients.get(clientId);
+        state.isVideoEnabled = isVideoEnabled;
+    }
+
+    _onScreenshareChanged(payload, action) {
         const { clientId } = payload;
 
-        let client = this._pendingClientLeft.get(clientId);
-        if (!client) return;
+        const state = this._clients.get(clientId);
+        state.isScreenshareEnabled = action;
+    }
 
-        client.attempts += 1;
-        if (client.attempts > 3) {
-            return;
+    _hasClientStateChanged({ clientId, webcam, mic, screenShare }) {
+        const state = this._clients.get(clientId);
+
+        if (!state) {
+            throw new Error(`Client ${clientId} not found in ReconnectManager state`);
         }
 
-        const stillActive = await this._checkIsActive(clientId);
-        if (stillActive) {
-            client.timeout = setTimeout(() => this._abortIfNotActive(payload), 500);
-            return;
+        if (webcam !== state.isVideoEnabled) {
+            return true;
+        }
+        if (mic !== state.isAudioEnabled) {
+            return true;
+        }
+        if (screenShare !== state.isScreenshareEnabled) {
+            return true;
         }
 
-        client = this._pendingClientLeft.get(clientId);
-        if (client) {
-            clearTimeout(client.timeout);
-            this._pendingClientLeft.delete(clientId);
-            this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
+        return false;
+    }
+
+    _addClientToState(newClient) {
+        this._clients.set(newClient.id, {
+            isAudioEnabled: newClient.isAudioEnabled,
+            isVideoEnabled: newClient.isVideoEnabled,
+            isScreenshareEnabled: newClient.streams.length > 1,
+            deviceId: newClient.deviceId,
+            isPendingToLeave: false,
+            clientId: newClient.id,
+        });
+    }
+
+    _wasClientSendingMedia(clientId) {
+        const client = this._clients.get(clientId);
+
+        if (!client) {
+            throw new Error(`Client ${clientId} not found in ReconnectManager state`);
         }
+
+        return client.isAudioEnabled || client.isVideoEnabled || client.isScreenshareEnabled;
+    }
+
+    _getPendingClientByDeviceId(deviceId) {
+        return Array.from(this._clients.values()).find((c) => {
+            return c.deviceId === deviceId && c.isPendingToLeave;
+        });
     }
 }

@@ -1641,29 +1641,4 @@ export default class VegaRtcManager {
     hasClient(clientId) {
         return this._clientStates.has(clientId);
     }
-
-    verifyClientStreams({ clientId, webcam, screenShare }) {
-        const clientState = this._clientStates.get(clientId);
-
-        if (!clientState) throw new Error(`Client ${clientId} not found`);
-
-        let webcamChanged;
-        let screenShareChanged;
-
-        // Verify webcam against clientState.
-        if (webcam) {
-            webcamChanged = !clientState.webcamStream.active;
-        } else {
-            webcamChanged = clientState.webcamStream.active;
-        }
-
-        // Verify screenShare against clientState.
-        if (screenShare) {
-            screenShareChanged = !clientState.hasEmittedScreenStream;
-        } else {
-            screenShareChanged = clientState.hasEmittedScreenStream;
-        }
-
-        return webcamChanged || screenShareChanged;
-    }
 }
