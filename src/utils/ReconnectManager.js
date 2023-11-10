@@ -115,8 +115,8 @@ export class ReconnectManager extends EventEmitter {
 
         client.isPendingToLeave = true;
         if (this._wasClientSendingMedia(clientId)) {
-            (client.checkActiveMediaAttempts = 0),
-                (client.timeoutHandler = setTimeout(() => this._abortIfNotActive(payload), 500));
+            client.checkActiveMediaAttempts = 0;
+            client.timeoutHandler = setTimeout(() => this._abortIfNotActive(payload), 500);
         }
     }
 
