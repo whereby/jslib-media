@@ -2,7 +2,7 @@ import EventEmitter from "events";
 import { getUpdatedStats } from "../webrtc/stats/StatsMonitor/index";
 import { PROTOCOL_EVENTS, PROTOCOL_RESPONSES } from "../model/protocol";
 
-const PEER_CONNECTION_RENEW_THRESHOLD = 2500; // reconnects completed withing this threshold can be "glitch-free"
+export const PEER_CONNECTION_RENEW_THRESHOLD = 2500; // reconnects completed withing this threshold can be "glitch-free"
 
 export class ReconnectManager extends EventEmitter {
     constructor(socket, logger = console) {
@@ -34,6 +34,7 @@ export class ReconnectManager extends EventEmitter {
         // if the signal connection drop is too long, we don't try to make anything glitch free
         if (Date.now() - (this._signalDisconnectTime || 0) > PEER_CONNECTION_RENEW_THRESHOLD) {
             this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
+            return;
         }
 
         const allStats = await getUpdatedStats();
@@ -94,7 +95,7 @@ export class ReconnectManager extends EventEmitter {
         const { clientId } = payload;
         const c = this._clients.get(clientId);
 
-        // if this client is pending to leave, then remove it
+        // remove client from state and clear timeout if client was pending to leave
         if (c) {
             clearTimeout(c.timeout);
             this._clients.delete(clientId);
@@ -111,7 +112,10 @@ export class ReconnectManager extends EventEmitter {
         const { clientId } = payload;
         const client = this._clients.get(clientId);
 
-        if (!client) throw new Error(`client ${clientId} not found`);
+        if (!client) {
+            this._logger.warn(`client ${clientId} not found`);
+            return;
+        }
 
         client.isPendingToLeave = true;
         if (this._wasClientSendingMedia(clientId)) {
@@ -134,7 +138,7 @@ export class ReconnectManager extends EventEmitter {
 
         client = this._getPendingClientByDeviceId(deviceId);
         if (client) {
-            clearTimeout(client.isPendingToLeave.timeout);
+            clearTimeout(client.timeoutHandler);
             client.isPendingToLeave = undefined;
             this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, { clientId: client.clientId });
         }
