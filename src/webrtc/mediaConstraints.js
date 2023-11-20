@@ -11,6 +11,7 @@ const parseResolution = (res) => res.split(/[^\d]/g).map((n) => parseInt(n, 10))
 export function getMediaConstraints({
     disableAEC,
     disableAGC,
+    fps24,
     hd,
     lax,
     lowDataMode,
@@ -21,7 +22,7 @@ export function getMediaConstraints({
 }) {
     let HIGH_HEIGHT = 480;
     let LOW_HEIGHT = 240;
-    let LOW_FPS = 15;
+    let IDEAL_FPS = 15;
 
     if (hd) {
         // respect user choice, but default to HD for pro, and SD for free
@@ -34,15 +35,18 @@ export function getMediaConstraints({
         } else {
             LOW_HEIGHT = 360;
         }
-        LOW_FPS = 30; // we still use 30fps because of assumptions about temporal layers
+        IDEAL_FPS = 30; // we still use 30fps because of assumptions about temporal layers
     }
+
+    // Set ideal FPS to 24 to save some bandwidth
+    if (fps24) IDEAL_FPS = 24;
 
     const constraints = {
         audio: { ...(preferredDeviceIds.audioId && { deviceId: preferredDeviceIds.audioId }) },
         video: {
             ...(preferredDeviceIds.videoId ? { deviceId: preferredDeviceIds.videoId } : { facingMode: "user" }),
             height: lowDataMode ? LOW_HEIGHT : HIGH_HEIGHT,
-            ...(lowDataMode && { frameRate: LOW_FPS }),
+            ...((lowDataMode || fps24) && { frameRate: IDEAL_FPS }),
         },
     };
     if (lax) {
