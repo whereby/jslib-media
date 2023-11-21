@@ -10,7 +10,6 @@ const DEFAULT_SOCKET_PATH = "/protocol/socket.io/v4";
  */
 export default class ServerSocket {
     constructor(hostName, optionsOverrides, glitchFree) {
-        this.glitchFree = glitchFree;
         this._socket = io(hostName, {
             path: DEFAULT_SOCKET_PATH,
             randomizationFactor: 0.5,
@@ -37,7 +36,7 @@ export default class ServerSocket {
             }
         });
 
-        if (this.glitchFree) this._reconnectManager = new ReconnectManager(this._socket);
+        if (glitchFree) this._reconnectManager = new ReconnectManager(this._socket);
 
         this._socket.on("connect", () => {
             const transport = this.getTransport();
