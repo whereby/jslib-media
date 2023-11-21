@@ -48,8 +48,7 @@ export default class ServerSocket {
     }
 
     setRtcManager(rtcManager) {
-        if (this.glitchFree) {
-            if (!this._reconnectManager) throw new Error("ReconnectManager is missing");
+        if (this._reconnectManager) {
 
             this._reconnectManager.rtcManager = rtcManager;
         }
