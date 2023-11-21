@@ -23,7 +23,7 @@ export class ReconnectManager extends EventEmitter {
         socket.on(PROTOCOL_RESPONSES.CLIENT_LEFT, (payload) => this._onClientLeft(payload));
         socket.on(PROTOCOL_EVENTS.PENDING_CLIENT_LEFT, (payload) => this._onPendingClientLeft(payload));
 
-        // We gather information from these event but they will also be forwarded.
+        // We gather information from these events but they will also be forwarded.
         socket.on(PROTOCOL_RESPONSES.AUDIO_ENABLED, (payload) => this._onAudioEnabled(payload));
         socket.on(PROTOCOL_RESPONSES.VIDEO_ENABLED, (payload) => this._onVideoEnabled(payload));
         socket.on(PROTOCOL_RESPONSES.SCREENSHARE_STARTED, (payload) => this._onScreenshareChanged(payload, true));
