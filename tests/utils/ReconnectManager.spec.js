@@ -1,5 +1,5 @@
 const EventEmitter = require("events");
-const { ReconnectManager, PEER_CONNECTION_RENEW_THRESHOLD } = require("../../src/utils/ReconnectManager");
+const { ReconnectManager } = require("../../src/utils/ReconnectManager");
 import { setTimeout as sleep } from "timers/promises";
 import { PROTOCOL_EVENTS, PROTOCOL_RESPONSES } from "../../src/model/protocol";
 import { getUpdatedStats } from "../../src/webrtc/stats/StatsMonitor/index";
@@ -12,6 +12,7 @@ const createMockSocket = () => {
 
 jest.mock("../../src/webrtc/stats/StatsMonitor/index");
 
+const DISCONNECT_TIMEOUT = 1500; // actual value configured on server-side.
 const mockStatsMediaActive = {
     tracks: {
         probator: {},
@@ -94,12 +95,13 @@ describe("ReconnectManager", () => {
                 const sut = new ReconnectManager(socket);
                 const forwardEvent = jest.spyOn(sut, "emit");
                 getUpdatedStats.mockResolvedValue({});
-                sut._signalDisconnectTime = Date.now() - (PEER_CONNECTION_RENEW_THRESHOLD + 1);
+                sut._signalDisconnectTime = Date.now() - (DISCONNECT_TIMEOUT + 1);
 
                 await socket.emit(PROTOCOL_RESPONSES.ROOM_JOINED, {
                     room: {
                         clients: [],
                     },
+                    disconnectTimeout: DISCONNECT_TIMEOUT,
                 });
 
                 expect(getUpdatedStats).not.toHaveBeenCalled();

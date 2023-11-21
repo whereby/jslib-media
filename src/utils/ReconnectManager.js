@@ -2,8 +2,6 @@ import EventEmitter from "events";
 import { getUpdatedStats } from "../webrtc/stats/StatsMonitor/index";
 import { PROTOCOL_EVENTS, PROTOCOL_RESPONSES } from "../model/protocol";
 
-export const PEER_CONNECTION_RENEW_THRESHOLD = 2500; // reconnects completed withing this threshold can be "glitch-free"
-
 export class ReconnectManager extends EventEmitter {
     constructor(socket, logger = console) {
         super();
@@ -33,8 +31,9 @@ export class ReconnectManager extends EventEmitter {
     }
 
     async _onRoomJoined(payload) {
-        // if the signal connection drop is too long, we don't try to make anything glitch free
-        if (Date.now() - (this._signalDisconnectTime || 0) > PEER_CONNECTION_RENEW_THRESHOLD) {
+        // the threshold for trying glitch-free reconnect should be less than server-side configuration
+        const RECONNECT_THRESHOLD = payload.disconnectTimeout * 0.8;
+        if (Date.now() - (this._signalDisconnectTime || 0) > RECONNECT_THRESHOLD) {
             this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
             return;
         }
