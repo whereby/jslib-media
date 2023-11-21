@@ -48,7 +48,6 @@ export default class ServerSocket {
 
     setRtcManager(rtcManager) {
         if (this._reconnectManager) {
-
             this._reconnectManager.rtcManager = rtcManager;
         }
     }
@@ -114,9 +113,9 @@ export default class ServerSocket {
         const relayableEvents = [
             PROTOCOL_RESPONSES.ROOM_JOINED,
             PROTOCOL_RESPONSES.CLIENT_LEFT,
-            PROTOCOL_RESPONSES.NEW_CLIENT
+            PROTOCOL_RESPONSES.NEW_CLIENT,
         ];
-        
+
         // Intercept certain events if glitch-free is enabled.
         if (this._reconnectManager && relayableEvents.includes(eventName)) {
             return this._interceptEvent(eventName, handler);
@@ -153,7 +152,7 @@ export default class ServerSocket {
      * Intercept event and let ReconnectManager handle them.
      */
     _interceptEvent(eventName, handler) {
-        if(this._reconnectManager) {
+        if (this._reconnectManager) {
             this._reconnectManager.on(eventName, handler);
         }
 
