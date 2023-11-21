@@ -156,9 +156,10 @@ export default class ServerSocket {
      * Intercept event and let ReconnectManager handle them.
      */
     _interceptEvent(eventName, handler) {
-        if (!this._reconnectManager) throw new Error("ReconnectMangager is missing");
+        if(this._reconnectManager) {
+            this._reconnectManager.on(eventName, handler);
+        }
 
-        this._reconnectManager.on(eventName, handler);
         return () => {
             if (this._reconnectManager) this._reconnectManager.removeListener(eventName, handler);
         };
