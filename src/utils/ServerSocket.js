@@ -112,17 +112,15 @@ export default class ServerSocket {
      * @returns {function} Function to deregister the listener.
      */
     on(eventName, handler) {
+        const relayableEvents = [
+            PROTOCOL_RESPONSES.ROOM_JOINED,
+            PROTOCOL_RESPONSES.CLIENT_LEFT,
+            PROTOCOL_RESPONSES.NEW_CLIENT
+        ];
+        
         // Intercept certain events if glitch-free is enabled.
-        if (this.glitchFree) {
-            if (
-                [
-                    PROTOCOL_RESPONSES.ROOM_JOINED,
-                    PROTOCOL_RESPONSES.CLIENT_LEFT,
-                    PROTOCOL_RESPONSES.NEW_CLIENT,
-                ].includes(eventName)
-            ) {
-                return this._interceptEvent(eventName, handler);
-            }
+        if (this._reconnectManager && relayableEvents.includes(eventName)) {
+            return this._interceptEvent(eventName, handler);
         }
 
         this._socket.on(eventName, handler);
