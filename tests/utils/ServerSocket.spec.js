@@ -65,12 +65,12 @@ describe("ServerSocket", () => {
             expect(serverSocket._reconnectManager?.rtcManager).toBe(mockManager);
         });
 
-        it("should throw with glitchFree on and missing ReconnectManger", () => {
+        it("should not throw with glitchFree on and missing ReconnectManger", () => {
             const serverSocket = new ServerSocket("https://localhost", null, true);
 
             delete serverSocket._reconnectManager;
 
-            expect(() => serverSocket.setRtcManager()).toThrow();
+            expect(() => serverSocket.setRtcManager({})).not.toThrow();
         });
     });
 
@@ -93,14 +93,14 @@ describe("ServerSocket", () => {
             expect(serverSocket._reconnectManager?.on).toHaveBeenCalledTimes(3);
         });
 
-        it("should throw when intercepting events on missing reconnect manager", () => {
+        it("should not throw when intercepting events on missing reconnect manager", () => {
             const serverSocket = new ServerSocket("https://localhost", null, true);
 
             delete serverSocket._reconnectManager;
 
-            expect(() => serverSocket.on(PROTOCOL_RESPONSES.CLIENT_LEFT, jest.fn())).toThrow();
-            expect(() => serverSocket.on(PROTOCOL_RESPONSES.ROOM_JOINED, jest.fn())).toThrow();
-            expect(() => serverSocket.on(PROTOCOL_RESPONSES.NEW_CLIENT, jest.fn())).toThrow();
+            expect(() => serverSocket.on(PROTOCOL_RESPONSES.CLIENT_LEFT, jest.fn())).not.toThrow();
+            expect(() => serverSocket.on(PROTOCOL_RESPONSES.ROOM_JOINED, jest.fn())).not.toThrow();
+            expect(() => serverSocket.on(PROTOCOL_RESPONSES.NEW_CLIENT, jest.fn())).not.toThrow();
             expect(() => serverSocket.on("event not intercepted by reconnect manager", jest.fn())).not.toThrow();
         });
 
