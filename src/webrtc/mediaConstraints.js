@@ -22,7 +22,7 @@ export function getMediaConstraints({
 }) {
     let HIGH_HEIGHT = 480;
     let LOW_HEIGHT = 240;
-    let IDEAL_FPS = 15;
+    let NON_STANDARD_FPS = 0;
 
     if (hd) {
         // respect user choice, but default to HD for pro, and SD for free
@@ -35,18 +35,20 @@ export function getMediaConstraints({
         } else {
             LOW_HEIGHT = 360;
         }
-        IDEAL_FPS = 30; // we still use 30fps because of assumptions about temporal layers
     }
 
-    // Set ideal FPS to 24 to save some bandwidth
-    if (fps24) IDEAL_FPS = 24;
+    // Set framerate to 24 to increase quality/bandwidth
+    if (fps24) NON_STANDARD_FPS = 24;
+
+    // Set framerate for low data, but only for non-simulcast
+    if (lowDataMode && !simulcast) NON_STANDARD_FPS = 15;
 
     const constraints = {
         audio: { ...(preferredDeviceIds.audioId && { deviceId: preferredDeviceIds.audioId }) },
         video: {
             ...(preferredDeviceIds.videoId ? { deviceId: preferredDeviceIds.videoId } : { facingMode: "user" }),
             height: lowDataMode ? LOW_HEIGHT : HIGH_HEIGHT,
-            ...((lowDataMode || fps24) && { frameRate: IDEAL_FPS }),
+            ...(NON_STANDARD_FPS && { frameRate: NON_STANDARD_FPS }),
         },
     };
     if (lax) {
