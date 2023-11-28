@@ -197,23 +197,24 @@ export class ReconnectManager extends EventEmitter {
 
     _onAudioEnabled(payload) {
         const { clientId, isAudioEnabled } = payload;
-
-        const state = this._clients.get(clientId);
-        state.isAudioEnabled = isAudioEnabled;
+        const c = this._clients.get(clientId);
+        if (c) c.isAudioEnabled = isAudioEnabled;
+        else this._clients.set(clientId, { isAudioEnabled });
     }
 
     _onVideoEnabled(payload) {
         const { clientId, isVideoEnabled } = payload;
-
-        const state = this._clients.get(clientId);
-        state.isVideoEnabled = isVideoEnabled;
+        const c = this._clients.get(clientId);
+        i;
+        if (c) c.isVideoEnabled = isVideoEnabled;
+        else this._clients.set(clientId, { isVideoEnabled });
     }
 
     _onScreenshareChanged(payload, action) {
         const { clientId } = payload;
-
-        const state = this._clients.get(clientId);
-        state.isScreenshareEnabled = action;
+        const c = this._clients.get(clientId);
+        if (c) c.isScreenshareEnabled = action;
+        else this._clients.set(clientId, { isScreenshareEnabled: action });
     }
 
     _hasClientStateChanged({ clientId, webcam, mic, screenShare }) {
