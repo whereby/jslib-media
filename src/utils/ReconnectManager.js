@@ -205,7 +205,6 @@ export class ReconnectManager extends EventEmitter {
     _onVideoEnabled(payload) {
         const { clientId, isVideoEnabled } = payload;
         const c = this._clients.get(clientId);
-        i;
         if (c) c.isVideoEnabled = isVideoEnabled;
         else this._clients.set(clientId, { isVideoEnabled });
     }
