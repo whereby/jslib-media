@@ -95,7 +95,7 @@ export function test(createRtcManager) {
                     rtcManager.setupSocketListeners();
                 });
 
-                describe.only(PROTOCOL_RESPONSES.ROOM_JOINED, () => {
+                describe(PROTOCOL_RESPONSES.ROOM_JOINED, () => {
                     it("ignores sfu mode", () => {
                         jest.spyOn(rtcManager, "_emitServerEvent");
 
