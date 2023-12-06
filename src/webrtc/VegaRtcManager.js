@@ -1357,6 +1357,10 @@ export default class VegaRtcManager {
                         return this._onDataConsumerClosed(data);
                     case "dominantSpeaker":
                         return this._onDominantSpeaker(data);
+                    case "consumerScore":
+                        return this._onConsumerScore(data);
+                    case "producerScore":
+                        return this._onProducerScore(data);
                     default:
                         this._logger.debug(`unknown message method "${method}"`);
                         return;
@@ -1450,6 +1454,14 @@ export default class VegaRtcManager {
         if (!consumer.appData.localPaused) {
             consumer.resume();
         }
+    }
+
+    _onConsumerScore({ consumerId, kind, score }) {
+        this._logger.debug("_onConsumerScore()", { consumerId, kind, score });
+    }
+
+    _onProducerScore({ producerId, kind, score }) {
+        this._logger.debug("_onProducerScore()", { producerId, kind, score });
     }
 
     async _onDataConsumerReady(options) {
