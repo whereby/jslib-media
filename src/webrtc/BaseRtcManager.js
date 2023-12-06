@@ -712,7 +712,6 @@ export default class BaseRtcManager {
 
                 const screenShareStreamId = Object.keys(this.localStreams).find((id) => id !== CAMERA_STREAM_ID);
                 if (!screenShareStreamId) {
-                    this._logger.warn("screenshare stream id not found");
                     return;
                 }
 
