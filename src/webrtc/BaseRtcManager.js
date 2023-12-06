@@ -710,7 +710,7 @@ export default class BaseRtcManager {
             this._serverSocket.on(PROTOCOL_RESPONSES.ROOM_JOINED, ({ room: { sfuServer: isSfu } }) => {
                 if (isSfu || !this._wasScreenSharing) return;
 
-                const screenShareStreamId = this.enabledLocalStreamIds[1];
+                const screenShareStreamId = Object.keys(this.localStreams).find((id) => id !== CAMERA_STREAM_ID);
                 if (!screenShareStreamId) {
                     this._logger.warn("screenshare stream id not found");
                     return;
