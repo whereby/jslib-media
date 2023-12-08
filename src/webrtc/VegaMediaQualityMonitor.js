@@ -126,7 +126,7 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
     _evaluateScore(score) {
         if (score < WARNING_SCORE && score > CRITICAL_SCORE) {
             return MEDIA_QUALITY.warning;
-        } else if (score < CRITICAL_SCORE) {
+        } else if (score < CRITICAL_SCORE && score > 0) {
             return MEDIA_QUALITY.critical;
         } else {
             return MEDIA_QUALITY.ok;
