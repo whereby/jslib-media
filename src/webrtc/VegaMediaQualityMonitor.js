@@ -75,7 +75,7 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
             state.trend.shift();
         }
 
-        if (newQuality !== state.currentQuality && state.trend.every((t) => t === newQuality)) {
+        if (newQuality !== state.currentQuality && state.trend.every((t) => t !== state.currentQuality)) {
             state.currentQuality = newQuality;
             return true;
         } else {
