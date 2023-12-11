@@ -114,7 +114,7 @@ export default class VegaRtcManager {
         this._reconnect = true;
         this._reconnectTimeOut = null;
 
-        this._qualityMonitor = new VegaMediaQualityMonitor();
+        this._qualityMonitor = new VegaMediaQualityMonitor({ logger: this._logger });
         this._qualityMonitor.on(PROTOCOL_EVENTS.MEDIA_QUALITY_CHANGED, (payload) => {
             this._emitToPWA(PROTOCOL_EVENTS.MEDIA_QUALITY_CHANGED, payload);
         });
