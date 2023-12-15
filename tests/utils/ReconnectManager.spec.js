@@ -92,6 +92,7 @@ describe("ReconnectManager", () => {
         it("should not throw on error in payload", async () => {
             const socket = createMockSocket();
             const sut = new ReconnectManager(socket);
+            const forwardEvent = jest.spyOn(sut, "emit");
             getUpdatedStats.mockResolvedValue({});
 
             expect(async () => {
@@ -100,6 +101,8 @@ describe("ReconnectManager", () => {
                     disconnectTimeout: DISCONNECT_TIMEOUT,
                 });
             }).not.toThrow();
+
+            expect(forwardEvent.mock.calls[0][0]).toBe(PROTOCOL_RESPONSES.ROOM_JOINED);
         });
 
         describe(PROTOCOL_RESPONSES.ROOM_JOINED, () => {
