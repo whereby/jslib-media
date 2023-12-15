@@ -89,6 +89,19 @@ describe("ReconnectManager", () => {
     });
 
     describe("events", () => {
+        it("should not throw on error in payload", async () => {
+            const socket = createMockSocket();
+            const sut = new ReconnectManager(socket);
+            getUpdatedStats.mockResolvedValue({});
+
+            expect(async () => {
+                await socket.emit(PROTOCOL_RESPONSES.ROOM_JOINED, {
+                    error: {},
+                    disconnectTimeout: DISCONNECT_TIMEOUT,
+                });
+            }).not.toThrow();
+        });
+
         describe(PROTOCOL_RESPONSES.ROOM_JOINED, () => {
             it("should forward event when threshold is exceeded", async () => {
                 const socket = createMockSocket();
