@@ -184,7 +184,7 @@ export class ReconnectManager extends EventEmitter {
         }
 
         client = this._clients[clientId];
-        if (client.isPendingToLeave) {
+        if (client?.isPendingToLeave) {
             clearTimeout(client.timeoutHandler);
             delete this._clients[clientId];
             this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
