@@ -1488,7 +1488,7 @@ export default class VegaRtcManager {
         this._logger.debug("_onProducerScore()", { producerId, kind, score });
         [this._micProducer, this._webcamProducer, this._screenVideoProducer, this._screenAudioProducer].forEach(
             (producer) => {
-                if (producer && producer.id === producerId) {
+                if (producer?.id === producerId) {
                     this._qualityMonitor.addProducerScore(this._selfId, producerId, kind, score);
                 }
             }
