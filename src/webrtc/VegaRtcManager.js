@@ -1476,7 +1476,9 @@ export default class VegaRtcManager {
 
     _onConsumerScore({ consumerId, kind, score }) {
         this._logger.debug("_onConsumerScore()", { consumerId, kind, score });
-        const { appData: { sourceClientId } } = this._consumers.get(consumerId) || { appData: {} };
+        const {
+            appData: { sourceClientId },
+        } = this._consumers.get(consumerId) || { appData: {} };
 
         if (sourceClientId) {
             this._qualityMonitor.addConsumerScore(sourceClientId, consumerId, kind, score);
