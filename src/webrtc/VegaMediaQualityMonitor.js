@@ -9,7 +9,7 @@ export const MEDIA_QUALITY = Object.freeze({
 
 const MONITOR_INTERVAL = 3000; // ms
 const TREND_HORIZON = 3; // number of monitor intervals needed for quality to change
-const WARNING_SCORE = 10;
+const WARNING_SCORE = 9;
 const CRITICAL_SCORE = 7;
 
 export default class VegaMediaQualityMonitor extends EventEmitter {
