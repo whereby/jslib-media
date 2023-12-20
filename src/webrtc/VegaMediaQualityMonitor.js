@@ -7,7 +7,7 @@ export const MEDIA_QUALITY = Object.freeze({
     critical: "critical",
 });
 
-const MONITOR_INTERVAL = 3000; // ms
+const MONITOR_INTERVAL = 600; // ms
 const TREND_HORIZON = 3; // number of monitor intervals needed for quality to change
 const WARNING_SCORE = 9;
 const CRITICAL_SCORE = 7;
