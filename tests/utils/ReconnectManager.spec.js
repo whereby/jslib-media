@@ -357,6 +357,7 @@ describe("ReconnectManager", () => {
             });
 
             it("should abort glitchfree on errors", async () => {
+                jest.spyOn(console, "error").mockImplementation(jest.fn());
                 const socket = createMockSocket();
                 const sut = new ReconnectManager(socket);
                 const forwardEvent = jest.spyOn(sut, "emit");
@@ -481,6 +482,7 @@ describe("ReconnectManager", () => {
 
         describe(PROTOCOL_EVENTS.PENDING_CLIENT_LEFT, () => {
             it("should not emit events on missing client", async () => {
+                jest.spyOn(console, "warn").mockImplementation(jest.fn());
                 const socket = createMockSocket();
                 const sut = new ReconnectManager(socket);
                 const forwardEvent = jest.spyOn(sut, "emit");
