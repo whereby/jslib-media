@@ -15,15 +15,15 @@ export class ReconnectManager extends EventEmitter {
             this._signalDisconnectTime = Date.now();
         });
 
-        // We intercept these events and take responsiblity for forwarding them.
+        // We intercept these events and take responsiblity for forwarding them
         socket.on(PROTOCOL_RESPONSES.ROOM_JOINED, (payload) => this._onRoomJoined(payload));
         socket.on(PROTOCOL_RESPONSES.NEW_CLIENT, (payload) => this._onNewClient(payload));
         socket.on(PROTOCOL_RESPONSES.CLIENT_LEFT, (payload) => this._onClientLeft(payload));
 
-        // We intercept these events and handle them without forwarding them.
+        // We intercept these events and handle them without forwarding them
         socket.on(PROTOCOL_EVENTS.PENDING_CLIENT_LEFT, (payload) => this._onPendingClientLeft(payload));
 
-        // We gather information from these events but they will also be forwarded.
+        // We gather information from these events but they will also be forwarded
         socket.on(PROTOCOL_RESPONSES.AUDIO_ENABLED, (payload) => this._onAudioEnabled(payload));
         socket.on(PROTOCOL_RESPONSES.VIDEO_ENABLED, (payload) => this._onVideoEnabled(payload));
         socket.on(PROTOCOL_RESPONSES.SCREENSHARE_STARTED, (payload) => this._onScreenshareChanged(payload, true));
@@ -31,45 +31,40 @@ export class ReconnectManager extends EventEmitter {
     }
 
     async _onRoomJoined(payload) {
-        // The threshold for trying glitch-free reconnect should be less than server-side configuration
-        const RECONNECT_THRESHOLD = payload.disconnectTimeout * 0.8;
-        if (Date.now() - (this._signalDisconnectTime || 0) > RECONNECT_THRESHOLD) {
-            this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
+        try {
+            // Try to remove ourself if this is a page reload. Could also be a first normal join_room
+            if (!this._signalDisconnectTime) {
+                this._resetClientState(payload);
+                const deviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
+                this._getPendingClientsByDeviceId(deviceId).forEach(({ clientId }) => {
+                    this._onPendingClientLeft({ clientId });
+                });
+                this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
+                return;
+            }
 
-            // This is either the first connect or a too long disconnect
-            // Reset client-state and add all remote-clients
-            this._clients = {};
-            payload.room.clients.forEach((newClient) => {
-                if (newClient.id === payload.selfId) {
+            // The threshold for trying glitch-free reconnect should be less than server-side configuration
+            const RECONNECT_THRESHOLD = payload.disconnectTimeout * 0.8;
+            if (this._signalDisconnectTime) {
+                if (Date.now() - this._signalDisconnectTime > RECONNECT_THRESHOLD) {
+                    this._resetClientState(payload);
+                    this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
                     return;
-                } else {
-                    this._addClientToState(newClient);
                 }
-            });
-            return;
-        }
+            }
 
-        const allStats = await getUpdatedStats();
+            const allStats = await getUpdatedStats();
 
-        const clientsToIgnore = [];
-
-        payload.room.clients.forEach((newClient) => {
-            try {
+            payload.room.clients.forEach((newClient) => {
                 if (newClient.id === payload.selfId) return;
-
-                // Any client pending to leave will be removed from payload.
-                if (newClient.isPendingToLeave) {
-                    return clientsToIgnore.push(newClient.id);
-                }
 
                 // Maybe add client to state
                 if (!this._clients[newClient.id]) {
                     this._addClientToState(newClient);
                     return;
                 }
-
                 // Verify that rtcManager knows about the client
-                if (!this.rtcManager.hasClient(newClient.id)) {
+                if (!this.rtcManager?.hasClient(newClient.id)) {
                     return;
                 }
 
@@ -93,95 +88,118 @@ export class ReconnectManager extends EventEmitter {
                 }
 
                 newClient.mergeWithOldClientState = true;
-            } catch (error) {
-                this._logger.error("Failed to evaluate if we should merge client state %o", error);
-            }
-        });
+            });
 
-        payload.room.clients = payload.room.clients.filter((c) => !clientsToIgnore.includes(c.id));
+            // We will try to remove any client pending to leave
+            payload.room.clients.forEach((c) => {
+                if (c.isPendingToLeave) {
+                    this._onPendingClientLeft({ clientId: c.id });
+                }
+            });
 
-        this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
+            this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
+        } catch (error) {
+            this._logger.error("Failed to evaluate if we should merge client state %o", error);
+            this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
+            this._resetClientState(payload);
+        }
     }
 
     _onClientLeft(payload) {
-        const { clientId } = payload;
-        const client = this._clients[clientId];
+        try {
+            const { clientId } = payload;
+            const client = this._clients[clientId];
 
-        // Remove client from state and clear timeout if client was pending to leave
-        if (client) {
-            clearTimeout(client.timeout);
-            delete this._clients[clientId];
+            // Remove client from state and clear timeout if client was pending to leave
+            if (client) {
+                clearTimeout(client.timeout);
+                delete this._clients[clientId];
+            }
+
+            // Old RTCManager only takes one argument, so rest is ignored.
+            this.rtcManager.disconnect(clientId, /* activeBreakout */ null, payload.eventClaim);
+
+            this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
+        } catch (error) {
+            console.error(error);
+            this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
         }
-
-        // Old RTCManager only takes one argument, so rest is ignored.
-        this.rtcManager.disconnect(clientId, /* activeBreakout */ null, payload.eventClaim);
-
-        // TODO: is it fine to retransmit client_left if we already did it following a pending_client_left?
-        this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
     }
 
     _onPendingClientLeft(payload) {
-        const { clientId } = payload;
-        const client = this._clients[clientId];
+        try {
+            const { clientId } = payload;
+            const client = this._clients[clientId];
 
-        if (!client) {
-            this._logger.warn(`client ${clientId} not found`);
-            return;
-        }
+            if (!client) {
+                this._logger.warn(`client ${clientId} not found`);
+                return;
+            }
 
-        client.isPendingToLeave = true;
-        if (this._wasClientSendingMedia(clientId)) {
-            client.checkActiveMediaAttempts = 0;
-            client.timeoutHandler = setTimeout(() => this._abortIfNotActive(payload), 500);
+            client.isPendingToLeave = true;
+            if (this._wasClientSendingMedia(clientId)) {
+                client.checkActiveMediaAttempts = 0;
+                this._abortIfNotActive(payload);
+            }
+        } catch (error) {
+            console.error(error);
         }
     }
 
     _onNewClient(payload) {
-        const {
-            client: { id: clientId, deviceId },
-        } = payload;
+        try {
+            const {
+                client: { id: clientId, deviceId },
+            } = payload;
 
-        let client = this._clients[clientId];
-        if (client && client.isPendingToLeave) {
-            clearTimeout(client.timeoutHandler);
-            client.isPendingToLeave = false;
-            return;
+            const client = this._clients[clientId];
+            if (client && client.isPendingToLeave) {
+                clearTimeout(client.timeoutHandler);
+                client.isPendingToLeave = false;
+                return;
+            }
+
+            this._getPendingClientsByDeviceId(deviceId).forEach((client) => {
+                clearTimeout(client.timeoutHandler);
+                client.isPendingToLeave = undefined;
+                this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, { clientId: client.clientId });
+            });
+
+            this._addClientToState(payload.client);
+            this.emit(PROTOCOL_RESPONSES.NEW_CLIENT, payload);
+        } catch (error) {
+            console.error(error);
+            this.emit(PROTOCOL_RESPONSES.NEW_CLIENT, payload);
         }
-
-        client = this._getPendingClientByDeviceId(deviceId);
-        if (client) {
-            clearTimeout(client.timeoutHandler);
-            client.isPendingToLeave = undefined;
-            this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, { clientId: client.clientId });
-        }
-
-        this._addClientToState(payload.client);
-        this.emit(PROTOCOL_RESPONSES.NEW_CLIENT, payload);
     }
 
     // Evaluate if we should send send client_left before getting it from signal-server
     async _abortIfNotActive(payload) {
-        const { clientId } = payload;
+        try {
+            const { clientId } = payload;
 
-        let client = this._clients[clientId];
-        if (!client.isPendingToLeave) return;
+            let client = this._clients[clientId];
+            if (!client?.isPendingToLeave) return;
 
-        client.checkActiveMediaAttempts++;
-        if (client.checkActiveMediaAttempts > 3) {
-            return;
-        }
+            client.checkActiveMediaAttempts++;
+            if (client.checkActiveMediaAttempts > 3) {
+                return;
+            }
 
-        const stillActive = await this._checkIsActive(clientId);
-        if (stillActive) {
-            client.timeoutHandler = setTimeout(() => this._abortIfNotActive(payload), 500);
-            return;
-        }
+            const stillActive = await this._checkIsActive(clientId);
+            if (stillActive) {
+                client.timeoutHandler = setTimeout(() => this._abortIfNotActive(payload), 500);
+                return;
+            }
 
-        client = this._clients[clientId];
-        if (client.isPendingToLeave) {
-            clearTimeout(client.timeoutHandler);
-            delete this._clients[clientId];
-            this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
+            client = this._clients[clientId];
+            if (client.isPendingToLeave) {
+                clearTimeout(client.timeoutHandler);
+                delete this._clients[clientId];
+                this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
+            }
+        } catch (error) {
+            console.error(error);
         }
     }
 
@@ -272,9 +290,20 @@ export class ReconnectManager extends EventEmitter {
         return client.isAudioEnabled || client.isVideoEnabled || client.isScreenshareEnabled;
     }
 
-    _getPendingClientByDeviceId(deviceId) {
-        return Object.values(this._clients).find((clientState) => {
+    _getPendingClientsByDeviceId(deviceId) {
+        return Object.values(this._clients).filter((clientState) => {
             return clientState.deviceId === deviceId && clientState.isPendingToLeave;
+        });
+    }
+
+    _resetClientState(payload) {
+        this._clients = {};
+        payload.room.clients.forEach((client) => {
+            if (client.id === payload.selfId) {
+                return;
+            } else {
+                this._addClientToState(client);
+            }
         });
     }
 }
