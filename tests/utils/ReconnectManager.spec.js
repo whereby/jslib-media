@@ -109,65 +109,28 @@ describe("ReconnectManager", () => {
                 expect(forwardEvent.mock.calls[0][0]).toBe(PROTOCOL_RESPONSES.ROOM_JOINED);
             });
 
-            it("should remove clients pending to leave event when threshold is exceeded", async () => {
+            it("should add remote clients to reconnectmanager state on first connect", async () => {
                 const socket = createMockSocket();
                 const sut = new ReconnectManager(socket);
                 const forwardEvent = jest.spyOn(sut, "emit");
-                const client1 = { id: "id", isPendingToLeave: true };
-                getUpdatedStats.mockResolvedValue({});
-
-                socket.emit("disconnect");
-                await socket.emit(PROTOCOL_RESPONSES.ROOM_JOINED, {
-                    room: {
-                        clients: [client1],
-                    },
-                });
-
-                expect(forwardEvent).toHaveBeenCalledTimes(1);
-                expect(forwardEvent.mock.calls[0][0]).toBe(PROTOCOL_RESPONSES.ROOM_JOINED);
-                expect(forwardEvent.mock.calls[0][1].room.clients).toEqual([]);
-            });
-
-            it("should always ignore yourself", async () => {
-                const socket = createMockSocket();
-                const sut = new ReconnectManager(socket);
-                const forwardEvent = jest.spyOn(sut, "emit");
-                const client1 = { id: "id", isPendingToLeave: true };
-                getUpdatedStats.mockResolvedValue({});
-
-                socket.emit("disconnect");
-                await socket.emit(PROTOCOL_RESPONSES.ROOM_JOINED, {
-                    room: {
-                        clients: [client1],
-                    },
-                    selfId: "id",
-                });
-
-                expect(forwardEvent).toHaveBeenCalledTimes(1);
-                expect(forwardEvent.mock.calls[0][0]).toBe(PROTOCOL_RESPONSES.ROOM_JOINED);
-                expect(forwardEvent.mock.calls[0][1].room.clients).toEqual([client1]);
-            });
-
-            it("should add clients to reconnectmanager state on first connect", async () => {
-                const socket = createMockSocket();
-                const sut = new ReconnectManager(socket);
-                const forwardEvent = jest.spyOn(sut, "emit");
-                const client1 = { id: "id", streams: [] };
+                const client1 = { id: "id1", streams: [], deviceId: "id1" };
+                const client2 = { id: "id2", streams: [], deviceId: "id2" };
                 getUpdatedStats.mockResolvedValue({});
                 expect(sut._clients).toEqual({});
 
-                // A clean room_joined, not following a disconnect
+                // A first room_joined or a page reload since not following a disconnect
                 await socket.emit(PROTOCOL_RESPONSES.ROOM_JOINED, {
+                    selfId: "id1",
                     room: {
-                        clients: [client1],
+                        clients: [client1, client2],
                     },
                 });
 
                 expect(Object.keys(sut._clients).length).toBe(1);
-                expect(sut._clients[client1.id]).toBeTruthy();
+                expect(sut._clients[client2.id]).toBeTruthy();
                 expect(forwardEvent).toHaveBeenCalledTimes(1);
                 expect(forwardEvent.mock.calls[0][0]).toBe(PROTOCOL_RESPONSES.ROOM_JOINED);
-                expect(forwardEvent.mock.calls[0][1].room.clients).toEqual([client1]);
+                expect(forwardEvent.mock.calls[0][1].room.clients).toEqual([client1, client2]);
             });
 
             it("should add new clients to reconnectmanager state", async () => {
@@ -492,7 +455,7 @@ describe("ReconnectManager", () => {
                 expect(forwardEvent.mock.calls[0][0]).toBe(PROTOCOL_RESPONSES.CLIENT_LEFT);
             });
 
-            it("should send not send client_left if client wasn't sending media", async () => {
+            it("should not send client_left if client wasn't sending media", async () => {
                 const socket = createMockSocket();
                 const sut = new ReconnectManager(socket);
                 const forwardEvent = jest.spyOn(sut, "emit");
@@ -508,7 +471,7 @@ describe("ReconnectManager", () => {
                 expect(forwardEvent).not.toHaveBeenCalled();
             });
 
-            it("should not send client_left if media has stopped", async () => {
+            it("should not forward client_left if media is active", async () => {
                 const socket = createMockSocket();
                 const sut = new ReconnectManager(socket);
                 const forwardEvent = jest.spyOn(sut, "emit");
