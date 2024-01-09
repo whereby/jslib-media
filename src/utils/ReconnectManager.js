@@ -31,6 +31,7 @@ export class ReconnectManager extends EventEmitter {
     }
 
     async _onRoomJoined(payload) {
+        const payloadCopy = { ...payload };
         try {
             // We might have gotten an error
             if (!payload.room?.clients) {
@@ -38,13 +39,16 @@ export class ReconnectManager extends EventEmitter {
                 return;
             }
 
-            // Try to remove ourself if this is a page reload. Could also be a first normal join_room
+            // Try to remove our own pending client if this is a page reload
+            // Could also be a first normal room_joined which can never be glitch-free
             if (!this._signalDisconnectTime) {
                 this._resetClientState(payload);
+                const clientIdsToExclude = [];
                 const deviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
                 this._getPendingClientsByDeviceId(deviceId).forEach(({ clientId }) => {
-                    this._onPendingClientLeft({ clientId });
+                    clientIdsToExclude.push(clientId);
                 });
+                payload.room.clients = payload.room.clients.filter((c) => !clientIdsToExclude.includes(c.id));
                 this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
                 return;
             }
@@ -59,44 +63,53 @@ export class ReconnectManager extends EventEmitter {
                 }
             }
 
-            const allStats = await getUpdatedStats();
+            // At this point we want to try to attempt glitch-free reconnection experience
+            
+            // Filter out our own pending client after page reload
+            const deviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
+            const clientIdsToExclude = [];
+            this._getPendingClientsByDeviceId(deviceId).forEach(({ clientId }) => {
+                clientIdsToExclude.push(clientId);
+            });
+            payload.room.clients = payload.room.clients.filter((c) => !clientIdsToExclude.includes(c.id));
 
-            payload.room.clients.forEach((newClient) => {
-                if (newClient.id === payload.selfId) return;
+            const allStats = await getUpdatedStats();
+            payload.room.clients.forEach((client) => {
+                if (client.id === payload.selfId) return;
 
                 // Maybe add client to state
-                if (!this._clients[newClient.id]) {
-                    this._addClientToState(newClient);
+                if (!this._clients[client.id]) {
+                    this._addClientToState(client);
                     return;
                 }
                 // Verify that rtcManager knows about the client
-                if (!this.rtcManager?.hasClient(newClient.id)) {
+                if (!this.rtcManager?.hasClient(client.id)) {
                     return;
                 }
 
                 // Verify what the client state hasn't changed
                 if (
                     this._hasClientStateChanged({
-                        clientId: newClient.id,
-                        webcam: newClient.isVideoEnabled,
-                        mic: newClient.isAudioEnabled,
-                        screenShare: newClient.streams.length > 1,
+                        clientId: client.id,
+                        webcam: client.isVideoEnabled,
+                        mic: client.isAudioEnabled,
+                        screenShare: client.streams.length > 1,
                     })
                 ) {
                     return;
                 }
 
-                if (this._wasClientSendingMedia(newClient.id)) {
+                if (this._wasClientSendingMedia(client.id)) {
                     // Verify the client media is still flowing (not stopped from other end)
-                    if (!this._isClientMediaActive(allStats, newClient.id)) {
+                    if (!this._isClientMediaActive(allStats, client.id)) {
                         return;
                     }
                 }
 
-                newClient.mergeWithOldClientState = true;
+                client.mergeWithOldClientState = true;
             });
 
-            // We will try to remove any client pending to leave
+            // We will try to remove any remote client pending to leave
             payload.room.clients.forEach((c) => {
                 if (c.isPendingToLeave) {
                     this._onPendingClientLeft({ clientId: c.id });
@@ -105,9 +118,9 @@ export class ReconnectManager extends EventEmitter {
 
             this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
         } catch (error) {
-            this._logger.error("Failed to evaluate if we should merge client state %o", error);
-            this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
-            this._resetClientState(payload);
+            this._logger.error("ReconnectManager failed to handle room_joined: %o", error);
+            this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payloadCopy);
+            this._resetClientState(payloadCopy);
         }
     }
 
