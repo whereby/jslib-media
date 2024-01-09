@@ -32,6 +32,12 @@ export class ReconnectManager extends EventEmitter {
 
     async _onRoomJoined(payload) {
         try {
+            // We might have gotten an error
+            if (!payload.room?.clients) {
+                this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
+                return;
+            }
+
             // Try to remove ourself if this is a page reload. Could also be a first normal join_room
             if (!this._signalDisconnectTime) {
                 this._resetClientState(payload);
@@ -193,7 +199,7 @@ export class ReconnectManager extends EventEmitter {
             }
 
             client = this._clients[clientId];
-            if (client.isPendingToLeave) {
+            if (client?.isPendingToLeave) {
                 clearTimeout(client.timeoutHandler);
                 delete this._clients[clientId];
                 this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
