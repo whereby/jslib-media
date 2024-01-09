@@ -31,7 +31,6 @@ export class ReconnectManager extends EventEmitter {
     }
 
     async _onRoomJoined(payload) {
-        const payloadCopy = { ...payload };
         try {
             // We might have gotten an error
             if (!payload.room?.clients) {
@@ -64,17 +63,17 @@ export class ReconnectManager extends EventEmitter {
             }
 
             // At this point we want to try to attempt glitch-free reconnection experience
-            
+
             // Filter out our own pending client after page reload
             const deviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
             const clientIdsToExclude = [];
-            this._getPendingClientsByDeviceId(deviceId).forEach(({ clientId }) => {
-                clientIdsToExclude.push(clientId);
+            payload.room.clients.forEach((c) => {
+                if (c.deviceId === deviceId && c.isPendingToLeave) clientIdsToExclude.push(c.id);
             });
-            payload.room.clients = payload.room.clients.filter((c) => !clientIdsToExclude.includes(c.id));
 
             const allStats = await getUpdatedStats();
             payload.room.clients.forEach((client) => {
+                if (clientIdsToExclude.includes(client.id)) return;
                 if (client.id === payload.selfId) return;
 
                 // Maybe add client to state
@@ -109,6 +108,9 @@ export class ReconnectManager extends EventEmitter {
                 client.mergeWithOldClientState = true;
             });
 
+            // Filter out exluded clientIds
+            payload.room.clients = payload.room.clients.filter(c => !clientIdsToExclude.includes(c.id))
+
             // We will try to remove any remote client pending to leave
             payload.room.clients.forEach((c) => {
                 if (c.isPendingToLeave) {
@@ -119,8 +121,8 @@ export class ReconnectManager extends EventEmitter {
             this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
         } catch (error) {
             this._logger.error("ReconnectManager failed to handle room_joined: %o", error);
-            this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payloadCopy);
-            this._resetClientState(payloadCopy);
+            this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
+            this._resetClientState(payload);
         }
     }
 
