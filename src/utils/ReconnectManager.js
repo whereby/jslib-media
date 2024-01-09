@@ -109,7 +109,7 @@ export class ReconnectManager extends EventEmitter {
             });
 
             // Filter out exluded clientIds
-            payload.room.clients = payload.room.clients.filter(c => !clientIdsToExclude.includes(c.id))
+            payload.room.clients = payload.room.clients.filter((c) => !clientIdsToExclude.includes(c.id));
 
             // We will try to remove any remote client pending to leave
             payload.room.clients.forEach((c) => {
