@@ -140,6 +140,11 @@ export class ReconnectManager extends EventEmitter {
             return;
         }
 
+        // We've already started the check below, don't do it again
+        if (client.isPendingToLeave) {
+            return;
+        }
+
         client.isPendingToLeave = true;
         if (this._wasClientSendingMedia(clientId)) {
             client.checkActiveMediaAttempts = 0;
