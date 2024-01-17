@@ -80,7 +80,7 @@ export class ReconnectManager extends EventEmitter {
                     return;
                 }
 
-                // Verify what the client state hasn't changed
+                // Verify that the client state hasn't changed
                 if (
                     this._hasClientStateChanged({
                         clientId: client.id,
