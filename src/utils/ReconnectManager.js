@@ -63,13 +63,11 @@ export class ReconnectManager extends EventEmitter {
 
         // Filter out our own pending client after page reload
         const myDeviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
-        const clientIdsToExclude = [];
         payload.room.clients = payload.room.clients.filter((c) => !(c.deviceId === myDeviceId && c.isPendingToLeave));
 
         const allStats = await getUpdatedStats();
         payload.room.clients.forEach((client) => {
             try {
-                if (clientIdsToExclude.includes(client.id)) return;
                 if (client.id === payload.selfId) return;
 
                 // Maybe add client to state
