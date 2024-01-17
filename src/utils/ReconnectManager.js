@@ -42,11 +42,10 @@ export class ReconnectManager extends EventEmitter {
         if (!this._signalDisconnectTime) {
             this._resetClientState(payload);
             const clientIdsToExclude = [];
-            const deviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
-            this._getPendingClientsByDeviceId(deviceId).forEach(({ clientId }) => {
-                clientIdsToExclude.push(clientId);
-            });
-            payload.room.clients = payload.room.clients.filter((c) => !clientIdsToExclude.includes(c.id));
+            const myDeviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
+            payload.room.clients = payload.room.clients.filter(
+                (c) => !(c.deviceId === myDeviceId && c.isPendingToLeave)
+            );
             this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
             return;
         }
