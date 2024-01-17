@@ -41,7 +41,6 @@ export class ReconnectManager extends EventEmitter {
         // Could also be a first normal room_joined which can never be glitch-free
         if (!this._signalDisconnectTime) {
             this._resetClientState(payload);
-            const clientIdsToExclude = [];
             const myDeviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
             payload.room.clients = payload.room.clients.filter(
                 (c) => !(c.deviceId === myDeviceId && c.isPendingToLeave)
