@@ -306,7 +306,7 @@ describe("ReconnectManager", () => {
 
                 expect(forwardEvent.mock.calls[1][0]).toBe(PROTOCOL_RESPONSES.ROOM_JOINED);
                 expect(forwardEvent).toHaveBeenCalledTimes(2);
-                expect(forwardEvent.mock.calls[1][1].room.clients.length).toBe(3);
+                expect(forwardEvent.mock.calls[1][1].room.clients.length).toBe(2);
                 forwardEvent.mock.calls[1][1].room.clients.forEach((c) => {
                     expect(c.mergeWithOldClientState).toBeUndefined();
                 });
