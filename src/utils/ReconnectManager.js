@@ -64,11 +64,9 @@ export class ReconnectManager extends EventEmitter {
         // At this point we want to try to attempt glitch-free reconnection experience
 
         // Filter out our own pending client after page reload
-        const deviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
+        const myDeviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
         const clientIdsToExclude = [];
-        payload.room.clients.forEach((c) => {
-            if (c.deviceId === deviceId && c.isPendingToLeave) clientIdsToExclude.push(c.id);
-        });
+        payload.room.clients = payload.room.clients.filter((c) => !(c.deviceId === myDeviceId && c.isPendingToLeave));
 
         const allStats = await getUpdatedStats();
         payload.room.clients.forEach((client) => {
@@ -110,9 +108,6 @@ export class ReconnectManager extends EventEmitter {
                 this._logger.error("Failed to evaluate if we should merge client state %o", error);
             }
         });
-
-        // Filter out exluded clientIds
-        payload.room.clients = payload.room.clients.filter((c) => !clientIdsToExclude.includes(c.id));
 
         // We will try to remove any remote client pending to leave
         payload.room.clients.forEach((c) => {
