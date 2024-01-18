@@ -37,11 +37,21 @@ export class ReconnectManager extends EventEmitter {
             return;
         }
 
+        if (!payload.selfId) {
+            this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
+            return;
+        }
+
+        const myDeviceId = payload.room.clients.find((c) => payload.selfId === c.id)?.deviceId;
+        if (!myDeviceId) {
+            this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
+            return;
+        }
+
         // Try to remove our own pending client if this is a page reload
         // Could also be a first normal room_joined which can never be glitch-free
         if (!this._signalDisconnectTime) {
             this._resetClientState(payload);
-            const myDeviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
             payload.room.clients = payload.room.clients.filter(
                 (c) => !(c.deviceId === myDeviceId && c.isPendingToLeave)
             );
@@ -51,18 +61,16 @@ export class ReconnectManager extends EventEmitter {
 
         // The threshold for trying glitch-free reconnect should be less than server-side configuration
         const RECONNECT_THRESHOLD = payload.disconnectTimeout * 0.8;
-        if (this._signalDisconnectTime) {
-            if (Date.now() - this._signalDisconnectTime > RECONNECT_THRESHOLD) {
-                this._resetClientState(payload);
-                this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
-                return;
-            }
+        const timeSinceDisconnect = Date.now() - this._signalDisconnectTime;
+        if (timeSinceDisconnect > RECONNECT_THRESHOLD) {
+            this._resetClientState(payload);
+            this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
+            return;
         }
 
         // At this point we want to try to attempt glitch-free reconnection experience
 
         // Filter out our own pending client after page reload
-        const myDeviceId = payload.room.clients.find((c) => payload.selfId === c.id).deviceId;
         payload.room.clients = payload.room.clients.filter((c) => !(c.deviceId === myDeviceId && c.isPendingToLeave));
 
         const allStats = await getUpdatedStats();
@@ -126,7 +134,7 @@ export class ReconnectManager extends EventEmitter {
         }
 
         // Old RTCManager only takes one argument, so rest is ignored.
-        this.rtcManager.disconnect(clientId, /* activeBreakout */ null, payload.eventClaim);
+        this.rtcManager?.disconnect(clientId, /* activeBreakout */ null, payload.eventClaim);
 
         this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
     }
