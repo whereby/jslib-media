@@ -246,8 +246,8 @@ export default class Session {
         if (!senders.length) {
             dbg("No senders!");
         }
-        // If we didn't specify oldTrack, replace with first of its kind
-        if (!oldTrack) {
+        // If we didn't specify oldTrack, or both track ids are unknown, replace with first of its kind
+        if (!oldTrack || senders.every((s) => s.track?.id !== oldTrack.id && s.track?.id !== newTrack.id)) {
             oldTrack = (senders.find((s) => s.track && s.track.kind === newTrack.kind) || {}).track;
         }
         // Modern browsers makes things simple.
