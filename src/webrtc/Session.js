@@ -249,10 +249,6 @@ export default class Session {
         // If we didn't specify oldTrack, replace with first of its kind
         if (!oldTrack) {
             oldTrack = (senders.find((s) => s.track && s.track.kind === newTrack.kind) || {}).track;
-            if (!oldTrack) {
-                // odin: Temporary debug data, remove if you see after 2020-12-01
-                dbg("No sender with same kind! Add new track then.");
-            }
         }
         // Modern browsers makes things simple.
         if (window.RTCRtpSender && window.RTCRtpSender.prototype.replaceTrack) {
@@ -261,10 +257,6 @@ export default class Session {
                     for (let i = 0; i < senders.length; i++) {
                         const sender = senders[i];
                         const track = sender.track;
-                        if (!sender && !track) {
-                            // odin: Temporary debug data, remove if you see after 2020-12-01
-                            dbg("One of the tracks is null!");
-                        }
                         if (track.id === newTrack.id) {
                             return Promise.resolve(newTrack);
                         }
