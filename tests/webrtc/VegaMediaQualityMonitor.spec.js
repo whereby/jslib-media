@@ -158,6 +158,7 @@ describe("VegaMediaQualityMonitor", () => {
     it.each([[null], [undefined], [{}], [[]], [[{ score: 1 }, {}]], [[{ score: 10 }, null]]])(
         "should not throw on unexpected producer score format: %o",
         (illegalScore) => {
+            jest.spyOn(console, "warn").mockImplementation(jest.fn());
             const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
             vegaQualityMonitor.addProducer(SELF_CLIENT_ID, PRODUCER_ID1);
 
@@ -172,6 +173,7 @@ describe("VegaMediaQualityMonitor", () => {
     it.each([[null], [undefined], [{}], [[]], [[{ score: 1 }, {}]], [[{ score: 10 }, null]]])(
         "should not throw on unexpected consumer score format: %o",
         (illegalScore) => {
+            jest.spyOn(console, "warn").mockImplementation(jest.fn());
             const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
             vegaQualityMonitor.addConsumer(CLIENT_ID1, CONSUMER_ID1);
 
@@ -186,6 +188,7 @@ describe("VegaMediaQualityMonitor", () => {
     it.each([[[]], [["id", null]], [[undefined, "id"]], [["id"]]])(
         "should ignore illegal consumer params %o",
         (illegalParams) => {
+            jest.spyOn(console, "warn").mockImplementation(jest.fn());
             const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
 
             expect(() => vegaQualityMonitor.addConsumer(illegalParams)).not.toThrow();
@@ -196,6 +199,7 @@ describe("VegaMediaQualityMonitor", () => {
     it.each([[[]], [["id", null]], [[undefined, "id"]], [["id"]]])(
         "should ignore illegal producer params %o",
         (illegalParams) => {
+            jest.spyOn(console, "warn").mockImplementation(jest.fn());
             const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
 
             expect(() => vegaQualityMonitor.addProducer(illegalParams)).not.toThrow();
