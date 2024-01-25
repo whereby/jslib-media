@@ -348,7 +348,7 @@ export default class BandwidthTester extends EventEmitter {
                 }
             })
             .catch((error) => {
-                console.error('"message" failed [error:%o]', error);
+                logger.error('"message" failed [error:%o]', error);
             });
     }
 

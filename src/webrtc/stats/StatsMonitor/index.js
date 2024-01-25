@@ -6,6 +6,9 @@ import {
     captureAudioSsrcMetrics,
     captureCandidatePairInfoMetrics,
 } from "./metrics";
+import { getLogger } from "../../../utils/getLogger";
+
+const logger = getLogger("StatsMonitor");
 
 const STATS_INTERVAL = 2000;
 
@@ -179,7 +182,7 @@ function startStatsMonitor({ interval }) {
             pressureObserver.observe("cpu");
         }
     } catch (ex) {
-        console.warn("Failed to observe CPU pressure", ex);
+        logger.warn("Failed to observe CPU pressure", ex);
     }
 
     let lastUpdateTime = 0;
@@ -358,7 +361,7 @@ function startStatsMonitor({ interval }) {
                 subscriptions.forEach((subscription) => subscription.onUpdatedStats?.(statsByView, clients));
             }
         } catch (ex) {
-            console.warn(ex);
+            logger.warn(ex);
         }
 
         nextTimeout = setTimeout(collectStats, interval || STATS_INTERVAL);

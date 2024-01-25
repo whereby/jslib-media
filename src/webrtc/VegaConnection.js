@@ -1,12 +1,14 @@
 import SfuV2Parser from "./SfuV2Parser";
 import { EventEmitter } from "events";
+import { getLogger } from "../utils/getLogger";
+
+const logger = getLogger("VegaConnection");
 
 export default class VegaConnection extends EventEmitter {
-    constructor(wsUrl, logger, protocol = "whereby-sfu#v4") {
+    constructor(wsUrl, protocol = "whereby-sfu#v4") {
         super();
 
         this.wsUrl = wsUrl;
-        this.logger = logger;
         this.protocol = protocol;
 
         // This is the map of sent requests that are waiting for a response
@@ -39,7 +41,7 @@ export default class VegaConnection extends EventEmitter {
     }
 
     _onOpen() {
-        this.logger.log("VegaConnectionManager: Connected");
+        logger.debug("Connected");
 
         this.emit("open");
     }
@@ -47,7 +49,7 @@ export default class VegaConnection extends EventEmitter {
     _onMessage(event) {
         const socketMessage = SfuV2Parser.parse(event.data);
 
-        this.logger.log("VegaConnectionManager: Received message", socketMessage);
+        logger.debug("Received message", socketMessage);
 
         if (socketMessage?.response) {
             this._handleResponse(socketMessage);
@@ -57,13 +59,13 @@ export default class VegaConnection extends EventEmitter {
     }
 
     _onClose() {
-        this.logger.log("VegaConnectionManager: Disconnected");
+        logger.debug("Disconnected");
 
         this._tearDown();
     }
 
     _onError(error) {
-        this.logger.log("VegaConnectionManager: Error", error);
+        logger.debug("Error", error);
     }
 
     _handleResponse(socketMessage) {

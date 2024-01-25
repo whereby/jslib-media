@@ -1,12 +1,14 @@
 import EventEmitter from "events";
 import { getUpdatedStats } from "../webrtc/stats/StatsMonitor/index";
 import { PROTOCOL_EVENTS, PROTOCOL_RESPONSES } from "../model/protocol";
+import { getLogger } from "./getLogger";
+
+const logger = getLogger("ReconnectManager");
 
 export class ReconnectManager extends EventEmitter {
-    constructor(socket, logger = console) {
+    constructor(socket) {
         super();
         this._socket = socket;
-        this._logger = logger;
         this._clients = {};
         this._signalDisconnectTime = undefined;
         this.rtcManager = undefined;
@@ -109,7 +111,7 @@ export class ReconnectManager extends EventEmitter {
 
                 client.mergeWithOldClientState = true;
             } catch (error) {
-                this._logger.error("Failed to evaluate if we should merge client state %o", error);
+                logger.error("Failed to evaluate if we should merge client state %o", error);
             }
         });
 
@@ -144,7 +146,7 @@ export class ReconnectManager extends EventEmitter {
         const client = this._clients[clientId];
 
         if (!client) {
-            this._logger.warn(`client ${clientId} not found`);
+            logger.warn(`client ${clientId} not found`);
             return;
         }
 
