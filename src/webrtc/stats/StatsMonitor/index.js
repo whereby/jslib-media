@@ -6,9 +6,9 @@ import {
     captureAudioSsrcMetrics,
     captureCandidatePairInfoMetrics,
 } from "./metrics";
-import { getLogger } from "../../../utils/getLogger";
+import Logger, { debugOn } from "../../../utils/Logger";
 
-const logger = getLogger("StatsMonitor");
+const logger = new Logger({ isEnabled: debugOn });
 
 const STATS_INTERVAL = 2000;
 

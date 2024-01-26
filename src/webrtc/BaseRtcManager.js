@@ -9,9 +9,9 @@ import assert from "../utils/assert";
 import rtcStats from "./rtcStatsService";
 import { MAXIMUM_TURN_BANDWIDTH, MAXIMUM_TURN_BANDWIDTH_UNLIMITED, MEDIA_JITTER_BUFFER_TARGET } from "./constants";
 import adapter from "webrtc-adapter";
-import { getLogger } from "../utils/getLogger";
+import Logger, { debugOn } from "../utils/Logger";
 
-const logger = getLogger("BaseRtcManager");
+const logger = new Logger({ isEnabled: debugOn });
 
 const CAMERA_STREAM_ID = RtcStream.getCameraId();
 const browserName = adapter.browserDetails.browser;
@@ -469,7 +469,7 @@ export default class BaseRtcManager {
         const promises = [];
         this._forEachPeerConnection((session) => {
             if (!session.hasConnectedPeerConnection()) {
-                logger.debug("Session doesn't have a connected PeerConnection, adding pending action!");
+                logger.info("Session doesn't have a connected PeerConnection, adding pending action!");
                 const pendingActions = this._pendingActionsForConnectedPeerConnections;
                 if (!pendingActions) {
                     logger.warn(

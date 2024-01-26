@@ -1,8 +1,8 @@
 import EventEmitter from "events";
 import { PROTOCOL_EVENTS } from "../model/protocol";
-import { getLogger } from "../utils/getLogger";
+import Logger, { debugOn } from "../utils/Logger";
 
-const logger = getLogger("VegaMediaQualityMonitor");
+const logger = new Logger({ isEnabled: debugOn });
 
 export const MEDIA_QUALITY = Object.freeze({
     ok: "ok",

@@ -32,10 +32,10 @@ const defaultParams = {
     outFormula: "score", // the out/score sent to SFU
 };
 
-import { getLogger } from "../utils/getLogger";
+import Logger, { debugOn } from "../utils/Logger";
 import * as scriptFunctions from "./VegaMicAnalyserTools";
 
-const logger = getLogger("VegaMicAnalyser");
+const logger = new Logger({ isEnabled: debugOn });
 
 export default function createMicAnalyser({ micTrack, params, onScoreUpdated }) {
     // todo: might need to reuse existing in PWA

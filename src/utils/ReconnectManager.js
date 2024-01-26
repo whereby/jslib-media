@@ -1,9 +1,9 @@
 import EventEmitter from "events";
 import { getUpdatedStats } from "../webrtc/stats/StatsMonitor/index";
 import { PROTOCOL_EVENTS, PROTOCOL_RESPONSES } from "../model/protocol";
-import { getLogger } from "./getLogger";
+import Logger, { debugOn } from "./Logger";
 
-const logger = getLogger("ReconnectManager");
+const logger = new Logger({ isEnabled: debugOn });
 
 export class ReconnectManager extends EventEmitter {
     constructor(socket) {

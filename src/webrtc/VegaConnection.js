@@ -1,8 +1,8 @@
 import SfuV2Parser from "./SfuV2Parser";
 import { EventEmitter } from "events";
-import { getLogger } from "../utils/getLogger";
+import Logger, { debugOn } from "../utils/Logger";
 
-const logger = getLogger("VegaConnection");
+const logger = new Logger({ isEnabled: debugOn });
 
 export default class VegaConnection extends EventEmitter {
     constructor(wsUrl, protocol = "whereby-sfu#v4") {
@@ -41,7 +41,7 @@ export default class VegaConnection extends EventEmitter {
     }
 
     _onOpen() {
-        logger.debug("Connected");
+        logger.info("Connected");
 
         this.emit("open");
     }
@@ -49,7 +49,7 @@ export default class VegaConnection extends EventEmitter {
     _onMessage(event) {
         const socketMessage = SfuV2Parser.parse(event.data);
 
-        logger.debug("Received message", socketMessage);
+        logger.info("Received message", socketMessage);
 
         if (socketMessage?.response) {
             this._handleResponse(socketMessage);
@@ -59,13 +59,13 @@ export default class VegaConnection extends EventEmitter {
     }
 
     _onClose() {
-        logger.debug("Disconnected");
+        logger.info("Disconnected");
 
         this._tearDown();
     }
 
     _onError(error) {
-        logger.debug("Error", error);
+        logger.info("Error", error);
     }
 
     _handleResponse(socketMessage) {

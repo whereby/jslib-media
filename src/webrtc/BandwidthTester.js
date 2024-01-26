@@ -3,9 +3,9 @@ import { Device } from "mediasoup-client";
 import VegaConnection from "./VegaConnection";
 import { getMediaSettings, modifyMediaCapabilities } from "../utils/mediaSettings";
 import { getHandler } from "../utils/getHandler";
-import { getLogger } from "../utils/getLogger";
+import Logger, { debugOn } from "../utils/Logger";
 
-const logger = getLogger("BandwidthTester");
+const logger = new Logger({ isEnabled: debugOn });
 
 export default class BandwidthTester extends EventEmitter {
     constructor({ features } = {}) {
@@ -73,7 +73,7 @@ export default class BandwidthTester extends EventEmitter {
     }
 
     close() {
-        logger.debug("close()");
+        logger.info("close()");
 
         this.closed = true;
 
@@ -108,7 +108,7 @@ export default class BandwidthTester extends EventEmitter {
     }
 
     async _start() {
-        logger.debug("_start()");
+        logger.info("_start()");
 
         // Calculate how long it took to connect and maybe close the test
         this._connectTime = Date.now() - this._startTime;
@@ -328,7 +328,7 @@ export default class BandwidthTester extends EventEmitter {
         this._producer = producer;
 
         producer.observer.once("close", () => {
-            logger.debug('producer "close" event');
+            logger.info('producer "close" event');
 
             this._producer = null;
         });
@@ -344,7 +344,7 @@ export default class BandwidthTester extends EventEmitter {
                     case "consumerClosed":
                         return this._onConsumerClosed(data);
                     default:
-                        logger.debug(`unknown message method "${method}"`);
+                        logger.info(`unknown message method "${method}"`);
                         return;
                 }
             })
@@ -368,7 +368,7 @@ export default class BandwidthTester extends EventEmitter {
     }
 
     _onConsumerClosed({ consumerId }) {
-        logger.debug("_onConsumerClosed()");
+        logger.info("_onConsumerClosed()");
 
         const consumer = this._consumers.get(consumerId);
 

@@ -1,8 +1,8 @@
 import getConstraints from "./mediaConstraints";
 import assert from "../utils/assert";
-import { getLogger } from "../utils/getLogger";
+import Logger, { debugOn } from "../utils/Logger";
 
-const logger = getLogger("MediaDevices");
+const logger = new Logger({ isEnabled: debugOn });
 
 export const isMobile = /mobi/i.test(navigator.userAgent);
 

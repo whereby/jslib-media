@@ -1,9 +1,9 @@
 import SDPUtils from "sdp";
 import adapter from "webrtc-adapter";
 import * as sdpTransform from "sdp-transform";
-import { getLogger } from "../utils/getLogger";
+import Logger, { debugOn } from "../utils/Logger";
 
-const logger = getLogger("sdpModifier");
+const logger = new Logger({ isEnabled: debugOn });
 
 const browserName = adapter.browserDetails.browser;
 const browserVersion = adapter.browserDetails.version;

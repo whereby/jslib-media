@@ -14,9 +14,9 @@ import { v4 as uuidv4 } from "uuid";
 import createMicAnalyser from "./VegaMicAnalyser";
 import { maybeTurnOnly } from "../utils/transportSettings";
 import VegaMediaQualityMonitor from "./VegaMediaQualityMonitor";
-import { getLogger } from "../utils/getLogger";
+import Logger, { debugOn } from "../utils/Logger";
 
-const logger = getLogger("VegaRtcManager");
+const logger = new Logger({ isEnabled: debugOn });
 
 const browserName = adapter.browserDetails.browser;
 let unloading = false;
@@ -191,7 +191,7 @@ export default class VegaRtcManager {
     }
 
     _onClose() {
-        logger.debug("_onClose()");
+        logger.info("_onClose()");
 
         // These will clean up any and all producers/consumers
         this._sendTransport?.close();
@@ -209,7 +209,7 @@ export default class VegaRtcManager {
     }
 
     async _join() {
-        logger.debug("join()");
+        logger.info("join()");
 
         try {
             // We need to always do this, as this triggers the join logic on the SFU
@@ -274,7 +274,7 @@ export default class VegaRtcManager {
 
         const transport = this._mediasoupDevice[creator](transportOptions);
         const onConnectionStateListener = async (connectionState) => {
-            logger.debug(`Transport ConnectionStateChanged ${connectionState}`);
+            logger.info(`Transport ConnectionStateChanged ${connectionState}`);
             if (connectionState !== "disconnected" && connectionState !== "failed") {
                 return;
             }
@@ -348,17 +348,17 @@ export default class VegaRtcManager {
 
     async _restartIce(transport, retried = 0) {
         if (!transport || !("closed" in transport) || !("connectionState" in transport)) {
-            logger.debug("_restartIce: No transport or property closed or connectionState!");
+            logger.info("_restartIce: No transport or property closed or connectionState!");
             return;
         }
 
         if (transport.closed) {
-            logger.debug("_restartIce: Transport is closed!");
+            logger.info("_restartIce: Transport is closed!");
             return;
         }
 
         if (transport.connectionState !== "disconnected" && transport.connectionState !== "failed") {
-            logger.debug("_restartIce: Connection is healthy ICE restart no loneger needed!");
+            logger.info("_restartIce: Connection is healthy ICE restart no loneger needed!");
             return;
         }
 
@@ -371,17 +371,17 @@ export default class VegaRtcManager {
         transport.appData.iceRestartStarted = now;
 
         if (RESTARTICE_ERROR_MAX_RETRY_COUNT <= retried) {
-            logger.debug("_restartIce: Reached restart ICE  maximum retry count!");
+            logger.info("_restartIce: Reached restart ICE  maximum retry count!");
             return;
         }
 
         if (!this._vegaConnection) {
-            logger.debug(`_restartIce: Connection is undefined`);
+            logger.info(`_restartIce: Connection is undefined`);
             return;
         }
         const { iceParameters } = await this._vegaConnection.request("restartIce", { transportId: transport.id });
 
-        logger.debug("_restartIce: ICE restart iceParameters received from SFU: ", iceParameters);
+        logger.info("_restartIce: ICE restart iceParameters received from SFU: ", iceParameters);
         const error = await transport
             .restartIce({ iceParameters })
             .then(() => null)
@@ -424,7 +424,7 @@ export default class VegaRtcManager {
     }
 
     async _internalSendMic() {
-        logger.debug("_internalSendMic()");
+        logger.info("_internalSendMic()");
 
         this._micProducerPromise = (async () => {
             try {
@@ -456,7 +456,7 @@ export default class VegaRtcManager {
                 this._qualityMonitor.addProducer(this._selfId, producer.id);
 
                 producer.observer.once("close", () => {
-                    logger.debug('micProducer "close" event');
+                    logger.info('micProducer "close" event');
 
                     if (producer.appData.localClosed)
                         this._vegaConnection?.message("closeProducers", { producerIds: [producer.id] });
@@ -483,7 +483,7 @@ export default class VegaRtcManager {
     }
 
     async _internalSetupMicScore() {
-        logger.debug("_internalSetupMicScore()");
+        logger.info("_internalSetupMicScore()");
 
         this._micScoreProducerPromise = (async () => {
             try {
@@ -506,7 +506,7 @@ export default class VegaRtcManager {
                 this._micScoreProducer = producer;
 
                 producer.observer.once("close", () => {
-                    logger.debug('micScoreProducer "close" event');
+                    logger.info('micScoreProducer "close" event');
                     if (producer.appData.localClosed) {
                         this._vegaConnection?.message("closeDataProducers", { dataProducerIds: [producer.id] });
                     }
@@ -533,7 +533,7 @@ export default class VegaRtcManager {
     }
 
     async _replaceMicTrack() {
-        logger.debug("_replaceMicTrack()");
+        logger.info("_replaceMicTrack()");
 
         if (!this._micTrack || !this._micProducer || this._micProducer.closed) return;
 
@@ -549,7 +549,7 @@ export default class VegaRtcManager {
     }
 
     _pauseResumeMic() {
-        logger.debug("_pauseResumeMic()");
+        logger.info("_pauseResumeMic()");
 
         if (!this._micProducer || this._micProducer.closed) return;
 
@@ -576,7 +576,7 @@ export default class VegaRtcManager {
     }
 
     async _sendMic(track) {
-        logger.debug("_sendMic() [track:%o]", track);
+        logger.info("_sendMic() [track:%o]", track);
 
         this._micTrack = track;
 
@@ -620,7 +620,7 @@ export default class VegaRtcManager {
     }
 
     async _internalSendWebcam() {
-        logger.debug("_internalSendWebcam()");
+        logger.info("_internalSendWebcam()");
 
         this._webcamProducerPromise = (async () => {
             try {
@@ -651,7 +651,7 @@ export default class VegaRtcManager {
                 this._webcamProducer = producer;
                 this._qualityMonitor.addProducer(this._selfId, producer.id);
                 producer.observer.once("close", () => {
-                    logger.debug('webcamProducer "close" event');
+                    logger.info('webcamProducer "close" event');
 
                     if (producer.appData.localClosed)
                         this._vegaConnection?.message("closeProducers", { producerIds: [producer.id] });
@@ -679,7 +679,7 @@ export default class VegaRtcManager {
     }
 
     async _replaceWebcamTrack() {
-        logger.debug("_replaceWebcamTrack()");
+        logger.info("_replaceWebcamTrack()");
 
         if (!this._webcamTrack || !this._webcamProducer || this._webcamProducer.closed) return;
 
@@ -690,7 +690,7 @@ export default class VegaRtcManager {
     }
 
     _pauseResumeWebcam() {
-        logger.debug("_pauseResumeWebcam()");
+        logger.info("_pauseResumeWebcam()");
 
         if (!this._webcamProducer || this._webcamProducer.closed) return;
 
@@ -714,7 +714,7 @@ export default class VegaRtcManager {
     }
 
     async _sendWebcam(track) {
-        logger.debug("_sendWebcam() [track:%o]", track);
+        logger.info("_sendWebcam() [track:%o]", track);
 
         this._webcamTrack = track;
 
@@ -728,7 +728,7 @@ export default class VegaRtcManager {
     }
 
     async _internalSendScreenVideo() {
-        logger.debug("_internalSendScreenVideo()");
+        logger.info("_internalSendScreenVideo()");
 
         this._screenVideoProducerPromise = (async () => {
             try {
@@ -755,7 +755,7 @@ export default class VegaRtcManager {
                 this._screenVideoProducer = producer;
                 this._qualityMonitor.addProducer(this._selfId, producer.id);
                 producer.observer.once("close", () => {
-                    logger.debug('screenVideoProducer "close" event');
+                    logger.info('screenVideoProducer "close" event');
 
                     if (producer.appData.localClosed)
                         this._vegaConnection?.message("closeProducers", { producerIds: [producer.id] });
@@ -782,7 +782,7 @@ export default class VegaRtcManager {
     }
 
     async _replaceScreenVideoTrack() {
-        logger.debug("_replaceScreenVideoTrack()");
+        logger.info("_replaceScreenVideoTrack()");
 
         if (!this._screenVideoTrack || !this._screenVideoProducer || this._screenVideoProducer.closed) return;
 
@@ -793,7 +793,7 @@ export default class VegaRtcManager {
     }
 
     async _sendScreenVideo(track) {
-        logger.debug("_sendScreenVideo() [track:%o]", track);
+        logger.info("_sendScreenVideo() [track:%o]", track);
 
         this._screenVideoTrack = track;
 
@@ -807,7 +807,7 @@ export default class VegaRtcManager {
     }
 
     async _internalSendScreenAudio() {
-        logger.debug("_internalSendScreenAudio()");
+        logger.info("_internalSendScreenAudio()");
 
         this._screenAudioProducerPromise = (async () => {
             try {
@@ -834,7 +834,7 @@ export default class VegaRtcManager {
                 this._screenAudioProducer = producer;
                 this._qualityMonitor.addProducer(this._selfId, producer.id);
                 producer.observer.once("close", () => {
-                    logger.debug('screenAudioProducer "close" event');
+                    logger.info('screenAudioProducer "close" event');
 
                     if (producer.appData.localClosed)
                         this._vegaConnection?.message("closeProducers", { producerIds: [producer.id] });
@@ -861,7 +861,7 @@ export default class VegaRtcManager {
     }
 
     async _replaceScreenAudioTrack() {
-        logger.debug("_replaceScreenAudioTrack()");
+        logger.info("_replaceScreenAudioTrack()");
 
         if (!this._screenAudioTrack || !this._screenAudioProducer || this._screenAudioProducer.closed) return;
 
@@ -872,7 +872,7 @@ export default class VegaRtcManager {
     }
 
     async _sendScreenAudio(track) {
-        logger.debug("_sendScreenAudio() [track:%o]", track);
+        logger.info("_sendScreenAudio() [track:%o]", track);
 
         this._screenAudioTrack = track;
 
@@ -886,7 +886,7 @@ export default class VegaRtcManager {
     }
 
     _stopProducer(producer) {
-        logger.debug("_stopProducer()");
+        logger.info("_stopProducer()");
 
         if (!producer || producer.closed) return;
 
@@ -972,7 +972,7 @@ export default class VegaRtcManager {
      * @param {string} eventClaim
      */
     disconnect(clientIdOrStreamId, _activeBreakout, eventClaim) {
-        logger.debug("disconnect() [clientIdOrStreamId:%s, eventClaim:%s]", clientIdOrStreamId, eventClaim);
+        logger.info("disconnect() [clientIdOrStreamId:%s, eventClaim:%s]", clientIdOrStreamId, eventClaim);
 
         if (this._clientStates.has(clientIdOrStreamId)) {
             // In this case this is a disconnect from an actual client, not just a screen share.
@@ -1030,7 +1030,7 @@ export default class VegaRtcManager {
      * @param {string} requestedByClientId
      */
     removeStream(streamId, _stream, requestedByClientId) {
-        logger.debug("removeStream() [streamId:%s, requestedByClientId:%s]", streamId, requestedByClientId);
+        logger.info("removeStream() [streamId:%s, requestedByClientId:%s]", streamId, requestedByClientId);
 
         this._emitToSignal(PROTOCOL_REQUESTS.STOP_SCREENSHARE, {
             streamId: OUTBOUND_SCREEN_OUTBOUND_STREAM_ID,
@@ -1134,7 +1134,7 @@ export default class VegaRtcManager {
      * @param {boolean} enabled
      */
     stopOrResumeAudio(stream, enabled) {
-        logger.debug("stopOrResumeAudio() [enabled:%s]", enabled);
+        logger.info("stopOrResumeAudio() [enabled:%s]", enabled);
 
         this._micPaused = !enabled;
 
@@ -1160,7 +1160,7 @@ export default class VegaRtcManager {
      * @param {boolean} enabled
      */
     stopOrResumeVideo(localStream, enable) {
-        logger.debug("stopOrResumeVideo() [enable:%s]", enable);
+        logger.info("stopOrResumeVideo() [enable:%s]", enable);
 
         this._webcamPaused = !enable;
 
@@ -1223,7 +1223,7 @@ export default class VegaRtcManager {
      * }} streamOptions
      */
     acceptNewStream({ streamId, clientId }) {
-        logger.debug("acceptNewStream()", { streamId, clientId });
+        logger.info("acceptNewStream()", { streamId, clientId });
 
         // make sure we have rtcStats connection
         this.rtcStatsReconnect();
@@ -1254,7 +1254,7 @@ export default class VegaRtcManager {
      * }} size
      */
     updateStreamResolution(streamId, _ignored, { width, height }) {
-        logger.debug("updateStreamResolution()", { streamId, width, height });
+        logger.info("updateStreamResolution()", { streamId, width, height });
 
         const consumerId = this._streamIdToVideoConsumerId.get(streamId);
         const consumer = this._consumers.get(consumerId);
@@ -1392,7 +1392,7 @@ export default class VegaRtcManager {
                     case "producerScore":
                         return this._onProducerScore(data);
                     default:
-                        logger.debug(`unknown message method "${method}"`);
+                        logger.info(`unknown message method "${method}"`);
                         return;
                 }
             })
@@ -1402,7 +1402,7 @@ export default class VegaRtcManager {
     }
 
     async _onConsumerReady(options) {
-        logger.debug("_onConsumerReady()", { id: options.id, producerId: options.producerId });
+        logger.info("_onConsumerReady()", { id: options.id, producerId: options.producerId });
 
         const consumer = await this._receiveTransport.consume(options);
 
@@ -1458,13 +1458,13 @@ export default class VegaRtcManager {
     }
 
     async _onConsumerClosed({ consumerId, reason }) {
-        logger.debug("_onConsumerClosed()", { consumerId, reason });
+        logger.info("_onConsumerClosed()", { consumerId, reason });
 
         this._consumers.get(consumerId)?.close();
     }
 
     _onConsumerPaused({ consumerId }) {
-        logger.debug("_onConsumerPaused()", { consumerId });
+        logger.info("_onConsumerPaused()", { consumerId });
 
         const consumer = this._consumers.get(consumerId);
 
@@ -1475,7 +1475,7 @@ export default class VegaRtcManager {
     }
 
     _onConsumerResumed({ consumerId }) {
-        logger.debug("_onConsumerResumed()", { consumerId });
+        logger.info("_onConsumerResumed()", { consumerId });
 
         const consumer = this._consumers.get(consumerId);
 
@@ -1489,7 +1489,7 @@ export default class VegaRtcManager {
     }
 
     _onConsumerScore({ consumerId, kind, score }) {
-        logger.debug("_onConsumerScore()", { consumerId, kind, score });
+        logger.info("_onConsumerScore()", { consumerId, kind, score });
         const {
             appData: { sourceClientId },
         } = this._consumers.get(consumerId) || { appData: {} };
@@ -1500,7 +1500,7 @@ export default class VegaRtcManager {
     }
 
     _onProducerScore({ producerId, kind, score }) {
-        logger.debug("_onProducerScore()", { producerId, kind, score });
+        logger.info("_onProducerScore()", { producerId, kind, score });
         [this._micProducer, this._webcamProducer, this._screenVideoProducer, this._screenAudioProducer].forEach(
             (producer) => {
                 if (producer?.id === producerId) {
@@ -1511,7 +1511,7 @@ export default class VegaRtcManager {
     }
 
     async _onDataConsumerReady(options) {
-        logger.debug("_onDataConsumerReady()", { id: options.id, producerId: options.producerId });
+        logger.info("_onDataConsumerReady()", { id: options.id, producerId: options.producerId });
         const consumer = await this._receiveTransport.consumeData(options);
 
         this._dataConsumers.set(consumer.id, consumer);
@@ -1537,7 +1537,7 @@ export default class VegaRtcManager {
     }
 
     async _onDataConsumerClosed({ dataConsumerId, reason }) {
-        logger.debug("_onDataConsumerClosed()", { dataConsumerId, reason });
+        logger.info("_onDataConsumerClosed()", { dataConsumerId, reason });
         const consumer = this._dataConsumers.get(dataConsumerId);
         consumer?.close();
     }

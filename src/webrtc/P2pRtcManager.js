@@ -10,9 +10,9 @@ import { Address6 } from "ip-address";
 import checkIp from "check-ip";
 import validate from "uuid-validate";
 import rtcManagerEvents from "./rtcManagerEvents";
-import { getLogger } from "../utils/getLogger";
+import Logger, { debugOn } from "../utils/Logger";
 
-const logger = getLogger("P2pRtcManager");
+const logger = new Logger({ isEnabled: debugOn });
 
 const ICE_PUBLIC_IP_GATHERING_TIMEOUT = 3 * 1000;
 const CAMERA_STREAM_ID = RtcStream.getCameraId();
@@ -314,7 +314,7 @@ export default class P2pRtcManager extends BaseRtcManager {
                                 }
                             }
                         } catch (error) {
-                            logger.debug("Error during parsing candidates! Error: ", { error });
+                            logger.info("Error during parsing candidates! Error: ", { error });
                         }
                         break;
                     case "srflx":
