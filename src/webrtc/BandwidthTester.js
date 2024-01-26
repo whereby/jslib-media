@@ -3,8 +3,9 @@ import { Device } from "mediasoup-client";
 import VegaConnection from "./VegaConnection";
 import { getMediaSettings, modifyMediaCapabilities } from "../utils/mediaSettings";
 import { getHandler } from "../utils/getHandler";
+import { getLogger } from "../utils/getLogger";
 
-const logger = { debug: () => {}, log: () => {}, warn: () => {}, error: () => {} };
+const logger = getLogger("BandwidthTester")
 
 export default class BandwidthTester extends EventEmitter {
     constructor({ features } = {}) {
