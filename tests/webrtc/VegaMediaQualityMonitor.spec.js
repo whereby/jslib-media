@@ -8,14 +8,10 @@ const PRODUCER_ID2 = "producerId2";
 const CONSUMER_ID1 = "consumerId1";
 const CONSUMER_ID2 = "consumerId2";
 const CONSUMER_ID3 = "consumerId3";
-const logger = {
-    warn: jest.fn(),
-    error: jest.fn(),
-};
 
 describe("VegaMediaQualityMonitor", () => {
     it("should keep track of remote clients producer score", () => {
-        const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+        const vegaQualityMonitor = new VegaMediaQualityMonitor();
 
         vegaQualityMonitor.addConsumer(CLIENT_ID1, CONSUMER_ID1);
         vegaQualityMonitor.addConsumer(CLIENT_ID2, CONSUMER_ID2);
@@ -35,7 +31,7 @@ describe("VegaMediaQualityMonitor", () => {
     });
 
     it("should keep track of local producer score", () => {
-        const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+        const vegaQualityMonitor = new VegaMediaQualityMonitor();
 
         vegaQualityMonitor.addProducer(SELF_CLIENT_ID, PRODUCER_ID1);
         vegaQualityMonitor.addProducer(SELF_CLIENT_ID, PRODUCER_ID2);
@@ -55,7 +51,7 @@ describe("VegaMediaQualityMonitor", () => {
         [[{ score: 10 }, { score: 0 }], 10],
         [[{ score: 0 }, { score: 0 }], 0],
     ])("should calculate score average on simulcast/svc local producer score: %o, avg: %s", (score, avg) => {
-        const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+        const vegaQualityMonitor = new VegaMediaQualityMonitor();
 
         vegaQualityMonitor.addProducer(SELF_CLIENT_ID, PRODUCER_ID1);
         vegaQualityMonitor.addProducerScore(SELF_CLIENT_ID, PRODUCER_ID1, "video", score);
@@ -69,7 +65,7 @@ describe("VegaMediaQualityMonitor", () => {
         [{ producerScores: [10, 0] }, 10],
         [{ producerScores: [0, 0] }, 0],
     ])("should calculate score average on simulcast/svc remote producer score: %o, avg: %s", (score, avg) => {
-        const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+        const vegaQualityMonitor = new VegaMediaQualityMonitor();
 
         vegaQualityMonitor.addConsumer(CLIENT_ID1, CONSUMER_ID1);
         vegaQualityMonitor.addConsumerScore(CLIENT_ID1, CONSUMER_ID1, "video", score);
@@ -79,7 +75,7 @@ describe("VegaMediaQualityMonitor", () => {
     });
 
     it("should not remove remote client with active producers", () => {
-        const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+        const vegaQualityMonitor = new VegaMediaQualityMonitor();
         vegaQualityMonitor.addConsumer(CLIENT_ID1, CONSUMER_ID1);
         vegaQualityMonitor.addConsumer(CLIENT_ID1, CONSUMER_ID2);
         vegaQualityMonitor.addConsumerScore(CLIENT_ID1, CONSUMER_ID1, "video", { producerScores: [10, 10, 10] });
@@ -93,7 +89,7 @@ describe("VegaMediaQualityMonitor", () => {
     });
 
     it("should remove remote client without active producers", () => {
-        const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+        const vegaQualityMonitor = new VegaMediaQualityMonitor();
         vegaQualityMonitor.addConsumer(CLIENT_ID1, CONSUMER_ID1);
         vegaQualityMonitor.addConsumer(CLIENT_ID1, CONSUMER_ID2);
         vegaQualityMonitor.addConsumerScore(CLIENT_ID1, CONSUMER_ID1, "video", { producerScores: [10, 10, 10] });
@@ -107,7 +103,7 @@ describe("VegaMediaQualityMonitor", () => {
     });
 
     it("should not remove self client with active producers", () => {
-        const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+        const vegaQualityMonitor = new VegaMediaQualityMonitor();
         vegaQualityMonitor.addProducer(SELF_CLIENT_ID, PRODUCER_ID1);
         vegaQualityMonitor.addProducer(SELF_CLIENT_ID, PRODUCER_ID2);
         vegaQualityMonitor.addProducerScore(SELF_CLIENT_ID, PRODUCER_ID2, "video", [{ score: 10 }]);
@@ -121,7 +117,7 @@ describe("VegaMediaQualityMonitor", () => {
     });
 
     it("should remove remote client without active producers", () => {
-        const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+        const vegaQualityMonitor = new VegaMediaQualityMonitor();
         vegaQualityMonitor.addProducer(SELF_CLIENT_ID, PRODUCER_ID1);
         vegaQualityMonitor.addProducer(SELF_CLIENT_ID, PRODUCER_ID2);
         vegaQualityMonitor.addProducerScore(SELF_CLIENT_ID, PRODUCER_ID2, "video", [{ score: 10 }]);
@@ -135,7 +131,7 @@ describe("VegaMediaQualityMonitor", () => {
     });
 
     it("should cleanup on close", async () => {
-        const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+        const vegaQualityMonitor = new VegaMediaQualityMonitor();
         vegaQualityMonitor.addProducer(SELF_CLIENT_ID, PRODUCER_ID1);
         vegaQualityMonitor.addProducerScore(SELF_CLIENT_ID, PRODUCER_ID1, "video", [{ score: 10 }]);
         vegaQualityMonitor.addConsumer(CLIENT_ID1, CONSUMER_ID1);
@@ -159,7 +155,7 @@ describe("VegaMediaQualityMonitor", () => {
         "should not throw on unexpected producer score format: %o",
         (illegalScore) => {
             jest.spyOn(console, "warn").mockImplementation(jest.fn());
-            const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+            const vegaQualityMonitor = new VegaMediaQualityMonitor();
             vegaQualityMonitor.addProducer(SELF_CLIENT_ID, PRODUCER_ID1);
 
             expect(() =>
@@ -174,7 +170,7 @@ describe("VegaMediaQualityMonitor", () => {
         "should not throw on unexpected consumer score format: %o",
         (illegalScore) => {
             jest.spyOn(console, "warn").mockImplementation(jest.fn());
-            const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+            const vegaQualityMonitor = new VegaMediaQualityMonitor();
             vegaQualityMonitor.addConsumer(CLIENT_ID1, CONSUMER_ID1);
 
             expect(() =>
@@ -189,7 +185,7 @@ describe("VegaMediaQualityMonitor", () => {
         "should ignore illegal consumer params %o",
         (illegalParams) => {
             jest.spyOn(console, "warn").mockImplementation(jest.fn());
-            const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+            const vegaQualityMonitor = new VegaMediaQualityMonitor();
 
             expect(() => vegaQualityMonitor.addConsumer(illegalParams)).not.toThrow();
             expect(Object.keys(vegaQualityMonitor._producers).length).toBe(0);
@@ -200,7 +196,7 @@ describe("VegaMediaQualityMonitor", () => {
         "should ignore illegal producer params %o",
         (illegalParams) => {
             jest.spyOn(console, "warn").mockImplementation(jest.fn());
-            const vegaQualityMonitor = new VegaMediaQualityMonitor({ logger });
+            const vegaQualityMonitor = new VegaMediaQualityMonitor();
 
             expect(() => vegaQualityMonitor.addProducer(illegalParams)).not.toThrow();
             expect(Object.keys(vegaQualityMonitor._producers).length).toBe(0);

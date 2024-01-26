@@ -5,7 +5,7 @@ import { getMediaSettings, modifyMediaCapabilities } from "../utils/mediaSetting
 import { getHandler } from "../utils/getHandler";
 import { getLogger } from "../utils/getLogger";
 
-const logger = getLogger("BandwidthTester")
+const logger = getLogger("BandwidthTester");
 
 export default class BandwidthTester extends EventEmitter {
     constructor({ features } = {}) {
