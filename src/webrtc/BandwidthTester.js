@@ -63,7 +63,7 @@ export default class BandwidthTester extends EventEmitter {
         const host = this._features.sfuServerOverrideHost || "any.sfu.whereby.com";
         const wsUrl = `wss://${host}`;
 
-        this._vegaConnection = new VegaConnection(wsUrl, logger, "whereby-sfu#bw-test-v1");
+        this._vegaConnection = new VegaConnection(wsUrl, "whereby-sfu#bw-test-v1");
         this._vegaConnection.on("open", () => this._start());
         this._vegaConnection.on("close", () => this.close());
         this._vegaConnection.on("message", (message) => this._onMessage(message));
