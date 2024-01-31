@@ -171,3 +171,66 @@ export function changeMediaDirection(sdp, active) {
             .join("")
     );
 }
+
+// Add sdp RTP extension mappings
+// a=extmap:9 http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time
+export function addAbsCaptureTimeExtMap(sdp) {
+    try {
+        const sdpObj = sdpTransform.parse(sdp);
+        const absCaptureTimeUri = "http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time";
+        let extmapId;
+        let allHeaderExtensions = [];
+
+        // Collect all unique extmaps to find all already used id-s
+        sdpObj?.media.forEach((mediaSection) => {
+            if (mediaSection.ext) {
+                allHeaderExtensions = allHeaderExtensions.concat(mediaSection.ext);
+            }
+        });
+        if (allHeaderExtensions.length === 0) {
+            extmapId = 1;
+        } else {
+            allHeaderExtensions.sort((a, b) => a.value - b.value);
+            // unique
+            allHeaderExtensions = allHeaderExtensions.filter((e, idx, arr) => {
+                if (idx < allHeaderExtensions.length - 1) return e.value < arr[idx + 1].value;
+                else return true;
+            });
+            const headerExtensionGapAfter = allHeaderExtensions.find((e, idx, arr) => {
+                if (idx < allHeaderExtensions.length - 1) return arr[idx + 1].value - e.value > 1;
+                else return false;
+            });
+            if (headerExtensionGapAfter) {
+                extmapId = headerExtensionGapAfter.value + 1;
+            } else {
+                const maxid = allHeaderExtensions.pop().value;
+                if (maxid < 14) {
+                    extmapId = maxid + 1;
+                } else {
+                    // https://datatracker.ietf.org/doc/html/rfc8285#section-4.2
+                    // 15 is reserved for a future extension and MUST NOT be used
+                    if (maxid === 14) extmapId = 16;
+                    else {
+                        if (sdpObj?.extmapAllowMixed && maxid < 254) extmapId = maxid + 1;
+                        // We didn't find appropriate ID and we can't manipulate sdp
+                        else return sdp;
+                    }
+                }
+            }
+        }
+        sdpObj.media.forEach((mediaSection) => {
+            if (mediaSection.type === "audio" || mediaSection.type === "video") {
+                if (!mediaSection.ext?.find((e) => e.uri === absCaptureTimeUri)) {
+                    if (typeof mediaSection.ext === Array) {
+                        mediaSection["ext"].push({ value: extmapId, uri: absCaptureTimeUri });
+                    } else {
+                        mediaSection["ext"] = [{ value: extmapId, uri: absCaptureTimeUri }];
+                    }
+                }
+            }
+        });
+        return sdpTransform.write(sdpObj);
+    } catch (error) {
+        console.error("Error during addAbsCaptureTimeExtMap: ", error);
+    }
+}
