@@ -9,9 +9,9 @@ import assert from "../utils/assert";
 import rtcStats from "./rtcStatsService";
 import { MAXIMUM_TURN_BANDWIDTH, MAXIMUM_TURN_BANDWIDTH_UNLIMITED, MEDIA_JITTER_BUFFER_TARGET } from "./constants";
 import adapter from "webrtc-adapter";
-import Logger, { debugOn } from "../utils/Logger";
+import Logger from "../utils/Logger";
 
-const logger = new Logger({ isEnabled: debugOn });
+const logger = new Logger();
 
 const CAMERA_STREAM_ID = RtcStream.getCameraId();
 const browserName = adapter.browserDetails.browser;

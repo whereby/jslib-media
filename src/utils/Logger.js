@@ -1,8 +1,8 @@
-export const debugOn = new URLSearchParams(window.location.search).has("debug");
+const debugOn = process.env.NODE_ENV === "development" || new URLSearchParams(window.location.search).has("debug");
 
 class Logger {
-    constructor({ isEnabled = false } = {}) {
-        this._isEnabled = Boolean(isEnabled);
+    constructor() {
+        this._isEnabled = debugOn;
     }
 
     isEnabled() {

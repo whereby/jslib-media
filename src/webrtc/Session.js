@@ -3,9 +3,9 @@ import * as statsHelper from "./statsHelper";
 import { setVideoBandwidthUsingSetParameters } from "./rtcrtpsenderHelper";
 import adapter from "webrtc-adapter";
 import { MAXIMUM_TURN_BANDWIDTH_UNLIMITED } from "./constants";
-import Logger, { debugOn } from "../utils/Logger";
+import Logger from "../utils/Logger";
 
-const logger = new Logger({ isEnabled: debugOn });
+const logger = new Logger();
 
 export default class Session {
     constructor({ peerConnectionId, bandwidth, maximumTurnBandwidth, deprioritizeH264Encoding }) {

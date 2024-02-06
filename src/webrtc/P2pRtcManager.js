@@ -10,9 +10,9 @@ import { Address6 } from "ip-address";
 import checkIp from "check-ip";
 import validate from "uuid-validate";
 import rtcManagerEvents from "./rtcManagerEvents";
-import Logger, { debugOn } from "../utils/Logger";
+import Logger from "../utils/Logger";
 
-const logger = new Logger({ isEnabled: debugOn });
+const logger = new Logger();
 
 const ICE_PUBLIC_IP_GATHERING_TIMEOUT = 3 * 1000;
 const CAMERA_STREAM_ID = RtcStream.getCameraId();

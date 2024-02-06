@@ -14,9 +14,9 @@ import { v4 as uuidv4 } from "uuid";
 import createMicAnalyser from "./VegaMicAnalyser";
 import { maybeTurnOnly } from "../utils/transportSettings";
 import VegaMediaQualityMonitor from "./VegaMediaQualityMonitor";
-import Logger, { debugOn } from "../utils/Logger";
+import Logger from "../utils/Logger";
 
-const logger = new Logger({ isEnabled: debugOn });
+const logger = new Logger();
 
 const browserName = adapter.browserDetails.browser;
 let unloading = false;

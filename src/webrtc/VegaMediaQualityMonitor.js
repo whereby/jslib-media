@@ -1,8 +1,8 @@
 import EventEmitter from "events";
 import { PROTOCOL_EVENTS } from "../model/protocol";
-import Logger, { debugOn } from "../utils/Logger";
+import Logger from "../utils/Logger";
 
-const logger = new Logger({ isEnabled: debugOn });
+const logger = new Logger();
 
 export const MEDIA_QUALITY = Object.freeze({
     ok: "ok",

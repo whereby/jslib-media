@@ -1,8 +1,8 @@
 import SfuV2Parser from "./SfuV2Parser";
 import { EventEmitter } from "events";
-import Logger, { debugOn } from "../utils/Logger";
+import Logger from "../utils/Logger";
 
-const logger = new Logger({ isEnabled: debugOn });
+const logger = new Logger();
 
 export default class VegaConnection extends EventEmitter {
     constructor(wsUrl, protocol = "whereby-sfu#v4") {
