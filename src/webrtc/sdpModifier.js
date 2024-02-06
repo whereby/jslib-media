@@ -200,4 +200,5 @@ export function addAbsCaptureTimeExtMap(sdp) {
     } catch (error) {
         console.error("Error during addAbsCaptureTimeExtMap: ", error);
     }
+    return sdp;
 }
