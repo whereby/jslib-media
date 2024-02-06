@@ -29,7 +29,7 @@ const OUTBOUND_SCREEN_OUTBOUND_STREAM_ID = uuidv4();
 if (browserName === "chrome") window.document.addEventListener("beforeunload", () => (unloading = true));
 
 export default class VegaRtcManager {
-    constructor({ selfId, room, emitter, serverSocket, webrtcProvider, features, eventClaim }) {
+    constructor({ selfId, room, emitter, serverSocket, webrtcProvider, features, eventClaim, deviceHandlerFactory }) {
         assert.ok(selfId, "selfId is required");
         assert.ok(room, "room is required");
         assert.ok(emitter && emitter.emit, "emitter is required");
@@ -52,7 +52,12 @@ export default class VegaRtcManager {
         this._micAnalyser = null;
         this._micAnalyserDebugger = null;
 
-        this._mediasoupDevice = new Device({ handlerName: getHandler() });
+        if (deviceHandlerFactory) {
+            this._mediasoupDevice = new Device({ handlerFactory: deviceHandlerFactory });
+        } else {
+            this._mediasoupDevice = new Device({ handlerName: getHandler() });
+        }
+
         this._routerRtpCapabilities = null;
 
         this._sendTransport = null;
@@ -206,10 +211,12 @@ export default class VegaRtcManager {
         }
 
         this._qualityMonitor.close();
+        this._emitToPWA(rtcManagerEvents.SFU_CONNECTION_CLOSED);
     }
 
     async _join() {
         logger.info("join()");
+        this._emitToPWA(rtcManagerEvents.SFU_CONNECTION_OPEN);
 
         try {
             // We need to always do this, as this triggers the join logic on the SFU
