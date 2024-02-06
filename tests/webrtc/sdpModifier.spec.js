@@ -213,5 +213,73 @@ describe("sdpModifier", () => {
                 }
             });
         });
+        it("Add RTP header extension map abs-capture-time (skip reserved 15) id=17", () => {
+            const extmap = {
+                audio:
+                    "a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level\r\n" +
+                    "a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\n" +
+                    "a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\n" +
+                    "a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\n" +
+                    "a=extmap:12 http://www.webrtc.org/experiments/rtp-hdrext/inband-c\r\n",
+                video:
+                    "a=extmap:9 urn:ietf:params:rtp-hdrext:toffset\r\n" +
+                    "a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\n" +
+                    "a=extmap:13 urn:3gpp:video-orientation\r\n" +
+                    "a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\n" +
+                    "a=extmap:5 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay\r\n" +
+                    "a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type\r\n" +
+                    "a=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing\r\n" +
+                    "a=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space\r\n" +
+                    "a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\n" +
+                    "a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\n" +
+                    "a=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\r\n" +
+                    "a=extmap:14 http://www.webrtc.org/experiments/rtp-hdrext/video-layers-allocation00\r\n" +
+                    "a=extmap:16 http://www.webrtc.org/experiments/rtp-hdrext/video-layers-allocation01",
+            };
+            const modifedSdp = sdpModifier.addAbsCaptureTimeExtMap(sdp(extmap));
+            const sections = SDPUtils.splitSections(modifedSdp);
+            sections.forEach((mediaSection) => {
+                const kind = SDPUtils.getKind(mediaSection);
+                if (kind === "audio" || kind === "video") {
+                    expect(mediaSection).toContain(
+                        "a=extmap:17 http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time\r\n"
+                    );
+                }
+            });
+        });
+        it("Uses existing RTP header extension map abs-capture-time id=6", () => {
+            const extmap = {
+                audio:
+                    "a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level\r\n" +
+                    "a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\n" +
+                    "a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\n" +
+                    "a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\n" +
+                    "a=extmap:12 http://www.webrtc.org/experiments/rtp-hdrext/inband-c\r\n",
+                video:
+                    "a=extmap:9 urn:ietf:params:rtp-hdrext:toffset\r\n" +
+                    "a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\n" +
+                    "a=extmap:13 urn:3gpp:video-orientation\r\n" +
+                    "a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\n" +
+                    "a=extmap:5 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay\r\n" +
+                    "a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time\r\n" +
+                    "a=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing\r\n" +
+                    "a=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space\r\n" +
+                    "a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\n" +
+                    "a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\n" +
+                    "a=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\r\n" +
+                    "a=extmap:14 http://www.webrtc.org/experiments/rtp-hdrext/video-layers-allocation00\r\n" +
+                    "a=extmap:16 http://www.webrtc.org/experiments/rtp-hdrext/video-layers-allocation01",
+            };
+            const modifedSdp = sdpModifier.addAbsCaptureTimeExtMap(sdp(extmap));
+            const sections = SDPUtils.splitSections(modifedSdp);
+            sections.forEach((mediaSection) => {
+                const kind = SDPUtils.getKind(mediaSection);
+                if (kind === "audio" || kind === "video") {
+                    expect(mediaSection).toContain(
+                        "a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time\r\n"
+                    );
+                }
+            });
+        });
     });
 });
