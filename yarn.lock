@@ -1725,7 +1725,7 @@
   resolved "https://registry.yarnpkg.com/@types/command-line-usage/-/command-line-usage-5.0.4.tgz#374e4c62d78fbc5a670a0f36da10235af879a0d5"
   integrity sha512-BwR5KP3Es/CSht0xqBcUXS3qCAUVXwpRKsV2+arxeb65atasuXG9LykC9Ab10Cw3s2raH92ZqOeILaQbsB2ACg==
 
-"@types/debug@^4.1.8":
+"@types/debug@^4.1.12":
   version "4.1.12"
   resolved "https://registry.yarnpkg.com/@types/debug/-/debug-4.1.12.tgz#a155f21690871953410df4b6b6f53187f0500917"
   integrity sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==
@@ -2047,7 +2047,7 @@ await-to-js@^3.0.0:
   resolved "https://registry.yarnpkg.com/await-to-js/-/await-to-js-3.0.0.tgz#70929994185616f4675a91af6167eb61cc92868f"
   integrity sha512-zJAaP9zxTcvTHRlejau3ZOY4V7SRpiByf3/dxx2uyKxxor19tpmpV2QRsTKikckwhaPmr2dVpxxMr7jOCYVp5g==
 
-awaitqueue@^3.0.1:
+awaitqueue@^3.0.2:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/awaitqueue/-/awaitqueue-3.0.2.tgz#a37a212b137b784dc6bd701d1ecfa4a07ec89625"
   integrity sha512-AVAtRwmf0DNSesMdyanFKKejTrOnjdKtz5LIDQFu2OTUgXvB/CRTYMrkPAF/2GCF9XBtYVxSwxDORlD41S+RyQ==
@@ -3105,11 +3105,12 @@ graphemer@^1.4.0:
   resolved "https://registry.yarnpkg.com/graphemer/-/graphemer-1.4.0.tgz#fb2f1d55e0e3a1849aeffc90c4fa0dd53a0e66c6"
   integrity sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==
 
-h264-profile-level-id@^1.0.1:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/h264-profile-level-id/-/h264-profile-level-id-1.0.2.tgz#3e060c5cefd1eaa39d4fcf1835ec9f60968a661f"
-  integrity sha512-bsSv/bHq4eIUt4iMycA9rn1C28gtXwrKLAkbpzuZmkQp4u3M6QlF5y6DlTMy5fGDkVGbMLxFGeL7Ra8JKMm4Dg==
+h264-profile-level-id@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/h264-profile-level-id/-/h264-profile-level-id-2.0.0.tgz#b7ea45badbac8f5dbb9583d34b06db09764f2535"
+  integrity sha512-X4CLryVbVA0CtjTExS4G5U1gb2Z4wa32AF8ukVmFuLdw2JRq2aHisor7SY5SYTUUrUSqq0KdPIO18sql6IWIQw==
   dependencies:
+    "@types/debug" "^4.1.12"
     debug "^4.3.4"
 
 has-flag@^3.0.0:
@@ -4021,21 +4022,21 @@ meant@^1.0.1:
   resolved "https://registry.yarnpkg.com/meant/-/meant-1.0.3.tgz#67769af9de1d158773e928ae82c456114903554c"
   integrity sha512-88ZRGcNxAq4EH38cQ4D85PM57pikCwS8Z99EWHODxN7KBY+UuPiqzRTtZzS8KTXO/ywSWbdjjJST2Hly/EQxLw==
 
-mediasoup-client@3.6.100:
-  version "3.6.100"
-  resolved "https://registry.yarnpkg.com/mediasoup-client/-/mediasoup-client-3.6.100.tgz#184edf2368665d45ba02c57d2c946919237f7b34"
-  integrity sha512-ZYxJYXDh7TdjK+QHpYuSRG+OTZC8+CI/UkhVUs5P2RSM7iLVOjLrtVemuEEa9Hwqx9HuYPbo+l/meZtFSEqijw==
+mediasoup-client@3.7.2:
+  version "3.7.2"
+  resolved "https://registry.yarnpkg.com/mediasoup-client/-/mediasoup-client-3.7.2.tgz#fca5d773558e027e4a9fa901752d7b65d141c38b"
+  integrity sha512-KNJZ7r3EV5XgmkH6nyvtBZxoTwhOgasjdB32MQ2z56Qh9/mP8jKHPEFQW0dVvb4N1CpxzRGQTnXKkBkS1OgDFw==
   dependencies:
-    "@types/debug" "^4.1.8"
-    awaitqueue "^3.0.1"
+    "@types/debug" "^4.1.12"
+    awaitqueue "^3.0.2"
     debug "^4.3.4"
     events "^3.3.0"
     fake-mediastreamtrack "^1.2.0"
-    h264-profile-level-id "^1.0.1"
+    h264-profile-level-id "^2.0.0"
     queue-microtask "^1.2.3"
     sdp-transform "^2.14.1"
     supports-color "^9.4.0"
-    ua-parser-js "^1.0.35"
+    ua-parser-js "^1.0.37"
 
 merge-stream@^2.0.0:
   version "2.0.0"
@@ -5051,7 +5052,7 @@ typical@^5.2.0:
   resolved "https://registry.yarnpkg.com/typical/-/typical-5.2.0.tgz#4daaac4f2b5315460804f0acf6cb69c52bb93066"
   integrity sha512-dvdQgNDNJo+8B2uBQoqdb11eUCE1JQXhvjC/CZtgvZseVd5TYMXnq0+vuUemXbd/Se29cTaUuPX3YIc2xgbvIg==
 
-ua-parser-js@^1.0.35:
+ua-parser-js@^1.0.37:
   version "1.0.37"
   resolved "https://registry.yarnpkg.com/ua-parser-js/-/ua-parser-js-1.0.37.tgz#b5dc7b163a5c1f0c510b08446aed4da92c46373f"
   integrity sha512-bhTyI94tZofjo+Dn8SN6Zv8nBDvyXTymAdM3LDI/0IboIUwTu1rEhW7v2TfiVsoYWgkQ4kOVqnI8APUFbIQIFQ==
