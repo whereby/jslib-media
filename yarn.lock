@@ -4650,10 +4650,15 @@ sdp-transform@^2.14.1:
   resolved "https://registry.yarnpkg.com/sdp-transform/-/sdp-transform-2.14.1.tgz#2bb443583d478dee217df4caa284c46b870d5827"
   integrity sha512-RjZyX3nVwJyCuTo5tGPx+PZWkDMCg7oOLpSlhjDdZfwUoNqG1mM8nyj31IGHyaPWXhjbP7cdK3qZ2bmkJ1GzRw==
 
-sdp@^2.12.0, sdp@^2.2.0, sdp@^2.6.0:
+sdp@^2.12.0, sdp@^2.6.0:
   version "2.12.0"
   resolved "https://registry.yarnpkg.com/sdp/-/sdp-2.12.0.tgz#338a106af7560c86e4523f858349680350d53b22"
   integrity sha512-jhXqQAQVM+8Xj5EjJGVweuEzgtGWb3tmEEpl3CLP3cStInSbVHSg0QWOGQzNq8pSID4JkpeV2mPqlMDLrm0/Vw==
+
+sdp@^3.2.0:
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/sdp/-/sdp-3.2.0.tgz#8961420552b36663b4d13ddba6f478d1461896a5"
+  integrity sha512-d7wDPgDV3DDiqulJjKiV2865wKsJ34YI+NDREbm+FySq6WuKOikwyNQcm+doLAZ1O6ltdO0SeKle2xMpN3Brgw==
 
 semver@^6.3.0, semver@^6.3.1:
   version "6.3.1"
