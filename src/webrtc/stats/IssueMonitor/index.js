@@ -118,7 +118,7 @@ const issueDetectors = [
             ssrc0.bitrate && ssrc0.direction === "in" && ssrc0.audioLevel >= 0.001 && ssrc0.audioConcealment >= 0.1,
     },
     {
-        id: "deaccelerated",
+        id: "decelerated",
         enabled: ({ hasLiveTrack, ssrc0, kind }) => hasLiveTrack && ssrc0 && kind === "audio",
         check: ({ ssrc0 }) =>
             ssrc0.bitrate && ssrc0.direction === "in" && ssrc0.audioLevel >= 0.001 && ssrc0.audioDeceleration >= 0.1,
@@ -225,7 +225,7 @@ const metrics = [
         value: ({ ssrc0 }) => ssrc0.audioConcealment,
     },
     {
-        id: "deacceleration",
+        id: "deceleration",
         enabled: ({ hasLiveTrack, ssrc0, kind }) =>
             hasLiveTrack &&
             ssrc0 &&
