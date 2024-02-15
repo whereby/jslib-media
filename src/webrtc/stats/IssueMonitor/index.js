@@ -405,13 +405,13 @@ function onUpdatedStats(statsByView, clients) {
                 }
             });
 
-            issueDetectors.forEach((isssueDetector) => {
-                if (isssueDetector.global && kind !== "global") return;
-                if (!isssueDetector.global && kind === "global") return;
+            issueDetectors.forEach((issueDetector) => {
+                if (issueDetector.global && kind !== "global") return;
+                if (!issueDetector.global && kind === "global") return;
 
-                const issueKey = `${qualifierString}-${isssueDetector.id}`;
+                const issueKey = `${qualifierString}-${issueDetector.id}`;
 
-                const enabled = isssueDetector.enabled ? isssueDetector.enabled(checkData) : true;
+                const enabled = issueDetector.enabled ? issueDetector.enabled(checkData) : true;
 
                 let issueData = issuesAndMetrics.issues[issueKey];
                 let aggregatedIssueData = aggregatedIssues[issueKey];
@@ -446,7 +446,7 @@ function onUpdatedStats(statsByView, clients) {
                     aggregatedIssueData.ticks++;
                     aggregatedIssueData.curTicks++;
 
-                    const issueDetected = isssueDetector.check?.(checkData);
+                    const issueDetected = issueDetector.check?.(checkData);
                     if (issueDetected) {
                         issueData.registered++;
                         issueData.current++;
