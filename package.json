@@ -31,7 +31,7 @@
     "socket.io-client": "4.7.2",
     "uuid": "^9.0.1",
     "uuid-validate": "^0.0.3",
-    "webrtc-adapter": "^7.3.0"
+    "webrtc-adapter": "^8.2.3"
   },
   "devDependencies": {
     "@auto-it/npm": "^10.29.2",
