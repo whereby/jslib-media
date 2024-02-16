@@ -6,7 +6,14 @@ let stopStats = null;
 const issueDetectors = [
     {
         id: "desync",
-        enabled: ({ client, track }) => !client.isLocalClient && track?.kind === "audio",
+        enabled: ({ client, track, stats }) => {
+            return (
+                !client.isLocalClient &&
+                track?.kind === "audio" &&
+                typeof stats?.tracks === "object" &&
+                Object.keys(stats.tracks).length > 1
+            );
+        },
         check: ({ stats: { tracks } }) => {
             const jitter = {
                 audio: 0,
@@ -16,13 +23,11 @@ const issueDetectors = [
             Object.values(tracks)
                 .flatMap((t) => Object.values(t.ssrcs))
                 .forEach((ssrc) => {
-                    if (ssrc.kind === "audio" && ssrc.jitter > jitter.audio)
-                        jitter.audio = ssrc.jitter;
-                    if (ssrc.kind === "video" && ssrc.jitter > jitter.video)
-                        jitter.video = ssrc.jitter;
+                    if (ssrc.kind === "audio" && ssrc.jitter > jitter.audio) jitter.audio = ssrc.jitter;
+                    if (ssrc.kind === "video" && ssrc.jitter > jitter.video) jitter.video = ssrc.jitter;
                 });
             const diff = Math.abs(jitter.audio * 1000 - jitter.video * 1000); // diff in ms
-            return diff > 500 
+            return diff > 500;
         },
     },
     {
