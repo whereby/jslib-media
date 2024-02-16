@@ -36,7 +36,7 @@
   "devDependencies": {
     "@auto-it/npm": "^10.29.2",
     "@babel/core": "^7.23.2",
-    "@babel/eslint-parser": "^7.22.15",
+    "@babel/eslint-parser": "^7.23.10",
     "@babel/preset-env": "^7.23.2",
     "auto": "10.29.2",
     "babel-jest": "^29.7.0",
