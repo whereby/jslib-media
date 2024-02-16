@@ -5,6 +5,27 @@ let stopStats = null;
 
 const issueDetectors = [
     {
+        id: "desync",
+        enabled: ({ client, track }) => !client.isLocalClient && track?.kind === "audio",
+        check: ({ stats: { tracks } }) => {
+            const jitter = {
+                audio: 0,
+                video: 0,
+            };
+
+            Object.values(tracks)
+                .flatMap((t) => Object.values(t.ssrcs))
+                .forEach((ssrc) => {
+                    if (ssrc.kind === "audio" && ssrc.jitter > jitter.audio)
+                        jitter.audio = ssrc.jitter;
+                    if (ssrc.kind === "video" && ssrc.jitter > jitter.video)
+                        jitter.video = ssrc.jitter;
+                });
+            const diff = Math.abs(jitter.audio * 1000 - jitter.video * 1000); // diff in ms
+            return diff > 500 
+        },
+    },
+    {
         id: "no-track",
         check: ({ track }) => !track,
     },
@@ -276,7 +297,7 @@ export const getIssuesAndMetrics = () => {
 };
 
 function onUpdatedStats(statsByView, clients) {
-    // reset aggreated current metrics
+    // reset aggregated current metrics
     Object.values(aggregatedMetrics).forEach((metricData) => {
         metricData.curTicks = 0;
         metricData.curSum = 0;
@@ -285,7 +306,7 @@ function onUpdatedStats(statsByView, clients) {
         metricData.curAvg = 0;
     });
 
-    // reset aggreated current issues
+    // reset aggregated current issues
     Object.values(aggregatedIssues).forEach((issueData) => {
         issueData.curTicks = 0;
         issueData.curRegistered = 0;
