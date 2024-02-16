@@ -322,6 +322,8 @@ function onUpdatedStats(statsByView, clients) {
         ["video", "audio", "global"].forEach((kind) => {
             // skip checking muted/disabled tracks if not global
             if (!(kind === "global" && !client.isPresentation) && !client[kind]?.enabled) return;
+            // don't check global for remote clients
+            if (kind === "global" && !client.isLocalClient) return;
 
             let issuesAndMetrics = issuesAndMetricsByView[client.id];
             if (!issuesAndMetrics) {
