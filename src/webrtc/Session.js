@@ -43,6 +43,7 @@ export default class Session {
         this.peerConnectionConfig = peerConnectionConfig;
         this.shouldAddLocalVideo = shouldAddLocalVideo;
         this.clientId = clientId;
+        peerConnectionConfig.encodedInsertableStreams = true;
         this.pc = new RTCPeerConnection(peerConnectionConfig, constraints);
         this.signalingState = this.pc.signalingState;
 
@@ -69,10 +70,58 @@ export default class Session {
         this.streams.push(stream);
         if (RTCPeerConnection.prototype.addTrack) {
             stream.getAudioTracks().forEach((track) => {
-                this.pc.addTrack(track, stream);
+                const sender = this.pc.addTrack(track, stream);
+                if (sender) {
+                    try {
+                        const encodedStreams = sender.createEncodedStreams();
+                        const readableStream = encodedStreams.readable;
+                        const writableStream = encodedStreams.writable;
+                        const transform = (encodedFrame, controller) => {
+                            if (!window.audioDelay) window.audioDelay = 0;
+                            if (!window.audioDelayTarget) window.audioDelayTarget = 0;
+                            if (!window.delayStep) window.delayStep = 1;
+                            const d = window.audioDelay - window.audioDelayTarget;
+                            if (d !== 0 && Math.abs(d) >= window.delayStep) {
+                                window.audioDelay += window.delayStep * (d < 0 ? 1 : d > 0 ? -1 : 0);
+                            }
+                            setTimeout(() => {
+                                controller.enqueue(encodedFrame);
+                            }, window.audioDelay || 0);
+                        };
+                        const transformStream = new TransformStream({ transform });
+                        readableStream.pipeThrough(transformStream).pipeTo(writableStream);
+                    } catch (ex) {
+                        // eslint-disable-next-line no-console
+                        console.log(ex);
+                    }
+                }
             });
             stream.getVideoTracks().forEach((track) => {
-                this.pc.addTrack(track, stream);
+                const sender = this.pc.addTrack(track, stream);
+                if (sender) {
+                    try {
+                        const encodedStreams = sender.createEncodedStreams();
+                        const readableStream = encodedStreams.readable;
+                        const writableStream = encodedStreams.writable;
+                        const transform = (encodedFrame, controller) => {
+                            if (!window.videoDelay) window.videoDelay = 0;
+                            if (!window.videoDelayTarget) window.videoDelayTarget = 0;
+                            if (!window.delayStep) window.delayStep = 1;
+                            const d = window.videoDelay - window.videoDelayTarget;
+                            if (d !== 0 && Math.abs(d) >= window.delayStep) {
+                                window.videoDelay += window.delayStep * (d < 0 ? 1 : d > 0 ? -1 : 0);
+                            }
+                            setTimeout(() => {
+                                controller.enqueue(encodedFrame);
+                            }, window.videoDelay || 0);
+                        };
+                        const transformStream = new TransformStream({ transform });
+                        readableStream.pipeThrough(transformStream).pipeTo(writableStream);
+                    } catch (ex) {
+                        // eslint-disable-next-line no-console
+                        console.log(ex);
+                    }
+                }
             });
         } else {
             // legacy addStream fallback.
