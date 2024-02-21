@@ -1,5 +1,4 @@
 import { TYPES as CONNECTION_STATUS_TYPES } from "./connectionStatusConstants";
-import assert from "../utils/assert";
 const CAMERA_STREAM_ID = "0";
 
 export const STREAM_TYPES = {
@@ -8,10 +7,17 @@ export const STREAM_TYPES = {
 };
 
 export default class RtcStream {
-    constructor(id, type) {
-        assert.notEqual(id, undefined, "id is required");
-        assert.notEqual(type, undefined, "type is required");
+    id: string;
+    type: string;
+    isEnabled: boolean;
+    hasSupportForAutoSuperSize: boolean;
+    isAudioEnabled: boolean;
+    isVideoEnabled: boolean;
+    status: string;
+    stream: MediaStream;
+    streamId: string;
 
+    constructor(id: string, type: string) {
         this.id = "" + id;
         this.type = type;
 
@@ -22,7 +28,7 @@ export default class RtcStream {
         this.status = CONNECTION_STATUS_TYPES.CONNECTING;
     }
 
-    setup(stream) {
+    setup(stream: MediaStream) {
         this.stream = stream;
         this.streamId = stream.id;
         this.setVideoEnabled(this.isVideoEnabled && stream.getVideoTracks().length > 0);
@@ -30,12 +36,12 @@ export default class RtcStream {
         return this;
     }
 
-    setStatus(status) {
+    setStatus(status: string) {
         this.status = status;
         return this;
     }
 
-    setVideoEnabled(isEnabled) {
+    setVideoEnabled(isEnabled: boolean) {
         this.isVideoEnabled = isEnabled;
         if (!this.stream) {
             return;
@@ -45,7 +51,7 @@ export default class RtcStream {
         });
     }
 
-    setAudioEnabled(isEnabled) {
+    setAudioEnabled(isEnabled: boolean) {
         this.isAudioEnabled = isEnabled;
         if (!this.stream) {
             return;
@@ -59,9 +65,7 @@ export default class RtcStream {
         return CAMERA_STREAM_ID;
     }
 
-    static getTypeFromId(id) {
-        assert.notEqual(id, undefined, "id is required");
-
+    static getTypeFromId(id: string) {
         const streamId = "" + id;
         return streamId === CAMERA_STREAM_ID ? STREAM_TYPES.CAMERA : STREAM_TYPES.SCREEN_SHARE;
     }
