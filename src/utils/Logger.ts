@@ -1,6 +1,9 @@
 const debugOn = process.env.NODE_ENV === "development" || new URLSearchParams(window.location.search).has("debug");
 
 class Logger {
+    _isEnabled = false;
+    _debugger: any = null;
+
     constructor() {
         this._isEnabled = debugOn;
     }
@@ -17,7 +20,7 @@ class Logger {
         this._isEnabled = false;
     }
 
-    info(...params) {
+    info(...params: any[]) {
         if (!this._isEnabled) {
             return;
         }
@@ -25,14 +28,14 @@ class Logger {
         return console.info(...params);
     }
 
-    warn(...params) {
+    warn(...params: any[]) {
         if (!this._isEnabled) {
             return;
         }
         return console.warn(...params);
     }
 
-    error(...params) {
+    error(...params: any[]) {
         if (!this._isEnabled) {
             return;
         }
@@ -44,11 +47,11 @@ class Logger {
         return this;
     }
 
-    debug(...params) {
+    debug(...params: any[]) {
         if (!this._isEnabled || !this._debugger) {
             return;
         }
-        const suppliedParams = [];
+        const suppliedParams: any[] = [];
         params.forEach((param) => {
             if (typeof param === "function") {
                 const suppliedParam = param();

@@ -6,7 +6,18 @@ import Logger from "./Logger";
 const logger = new Logger();
 
 export class ReconnectManager extends EventEmitter {
-    constructor(socket) {
+    _socket: any;
+    _clients: any;
+    _signalDisconnectTime?: number;
+    rtcManager?: any;
+    metrics: {
+        roomJoinedLate: number;
+        pendingClientCanceled: number;
+        evaluationFailed: number;
+        roomJoined: number;
+    };
+
+    constructor(socket: any) {
         super();
         this._socket = socket;
         this._clients = {};
@@ -24,21 +35,21 @@ export class ReconnectManager extends EventEmitter {
         });
 
         // We intercept these events and take responsiblity for forwarding them
-        socket.on(PROTOCOL_RESPONSES.ROOM_JOINED, (payload) => this._onRoomJoined(payload));
-        socket.on(PROTOCOL_RESPONSES.NEW_CLIENT, (payload) => this._onNewClient(payload));
-        socket.on(PROTOCOL_RESPONSES.CLIENT_LEFT, (payload) => this._onClientLeft(payload));
+        socket.on(PROTOCOL_RESPONSES.ROOM_JOINED, (payload: any) => this._onRoomJoined(payload));
+        socket.on(PROTOCOL_RESPONSES.NEW_CLIENT, (payload: any) => this._onNewClient(payload));
+        socket.on(PROTOCOL_RESPONSES.CLIENT_LEFT, (payload: any) => this._onClientLeft(payload));
 
         // We intercept these events and handle them without forwarding them
-        socket.on(PROTOCOL_EVENTS.PENDING_CLIENT_LEFT, (payload) => this._onPendingClientLeft(payload));
+        socket.on(PROTOCOL_EVENTS.PENDING_CLIENT_LEFT, (payload: any) => this._onPendingClientLeft(payload));
 
         // We gather information from these events but they will also be forwarded
-        socket.on(PROTOCOL_RESPONSES.AUDIO_ENABLED, (payload) => this._onAudioEnabled(payload));
-        socket.on(PROTOCOL_RESPONSES.VIDEO_ENABLED, (payload) => this._onVideoEnabled(payload));
-        socket.on(PROTOCOL_RESPONSES.SCREENSHARE_STARTED, (payload) => this._onScreenshareChanged(payload, true));
-        socket.on(PROTOCOL_RESPONSES.SCREENSHARE_STOPPED, (payload) => this._onScreenshareChanged(payload, false));
+        socket.on(PROTOCOL_RESPONSES.AUDIO_ENABLED, (payload: any) => this._onAudioEnabled(payload));
+        socket.on(PROTOCOL_RESPONSES.VIDEO_ENABLED, (payload: any) => this._onVideoEnabled(payload));
+        socket.on(PROTOCOL_RESPONSES.SCREENSHARE_STARTED, (payload: any) => this._onScreenshareChanged(payload, true));
+        socket.on(PROTOCOL_RESPONSES.SCREENSHARE_STOPPED, (payload: any) => this._onScreenshareChanged(payload, false));
     }
 
-    async _onRoomJoined(payload) {
+    async _onRoomJoined(payload: any) {
         // We might have gotten an error
         if (!payload.room?.clients) {
             this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
@@ -50,7 +61,7 @@ export class ReconnectManager extends EventEmitter {
             return;
         }
 
-        const myDeviceId = payload.room.clients.find((c) => payload.selfId === c.id)?.deviceId;
+        const myDeviceId = payload.room.clients.find((c: any) => payload.selfId === c.id)?.deviceId;
         if (!myDeviceId) {
             this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
             return;
@@ -61,7 +72,7 @@ export class ReconnectManager extends EventEmitter {
         if (!this._signalDisconnectTime) {
             this._resetClientState(payload);
             payload.room.clients = payload.room.clients.filter(
-                (c) => !(c.deviceId === myDeviceId && c.isPendingToLeave)
+                (c: any) => !(c.deviceId === myDeviceId && c.isPendingToLeave)
             );
             this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
             return;
@@ -80,10 +91,12 @@ export class ReconnectManager extends EventEmitter {
         // At this point we want to try to attempt glitch-free reconnection experience
 
         // Filter out our own pending client after page reload
-        payload.room.clients = payload.room.clients.filter((c) => !(c.deviceId === myDeviceId && c.isPendingToLeave));
+        payload.room.clients = payload.room.clients.filter(
+            (c: any) => !(c.deviceId === myDeviceId && c.isPendingToLeave)
+        );
 
         const allStats = await getUpdatedStats();
-        payload.room.clients.forEach((client) => {
+        payload.room.clients.forEach((client: any) => {
             try {
                 if (client.id === payload.selfId) return;
 
@@ -124,7 +137,7 @@ export class ReconnectManager extends EventEmitter {
         });
 
         // We will try to remove any remote client pending to leave
-        payload.room.clients.forEach((c) => {
+        payload.room.clients.forEach((c: any) => {
             if (c.isPendingToLeave) {
                 this._onPendingClientLeft({ clientId: c.id });
             }
@@ -134,7 +147,7 @@ export class ReconnectManager extends EventEmitter {
         this.emit(PROTOCOL_RESPONSES.ROOM_JOINED, payload);
     }
 
-    _onClientLeft(payload) {
+    _onClientLeft(payload: any) {
         const { clientId } = payload;
         const client = this._clients[clientId];
 
@@ -150,7 +163,7 @@ export class ReconnectManager extends EventEmitter {
         this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, payload);
     }
 
-    _onPendingClientLeft(payload) {
+    _onPendingClientLeft(payload: any) {
         const { clientId } = payload;
         const client = this._clients[clientId];
 
@@ -171,7 +184,7 @@ export class ReconnectManager extends EventEmitter {
         }
     }
 
-    _onNewClient(payload) {
+    _onNewClient(payload: any) {
         const {
             client: { id: clientId, deviceId },
         } = payload;
@@ -184,7 +197,7 @@ export class ReconnectManager extends EventEmitter {
             return;
         }
 
-        this._getPendingClientsByDeviceId(deviceId).forEach((client) => {
+        this._getPendingClientsByDeviceId(deviceId).forEach((client: any) => {
             clearTimeout(client.timeoutHandler);
             client.isPendingToLeave = undefined;
             this.emit(PROTOCOL_RESPONSES.CLIENT_LEFT, { clientId: client.clientId });
@@ -195,7 +208,7 @@ export class ReconnectManager extends EventEmitter {
     }
 
     // Evaluate if we should send send client_left before getting it from signal-server
-    async _abortIfNotActive(payload) {
+    async _abortIfNotActive(payload: any) {
         const { clientId } = payload;
 
         let client = this._clients[clientId];
@@ -221,19 +234,19 @@ export class ReconnectManager extends EventEmitter {
     }
 
     // Check if client is active
-    async _checkIsActive(clientId) {
+    async _checkIsActive(clientId: string) {
         const allStats = await getUpdatedStats();
         return this._isClientMediaActive(allStats, clientId);
     }
 
     // Check if client has bitrates for all tracks
-    _isClientMediaActive(stats, clientId) {
+    _isClientMediaActive(stats: any, clientId: string) {
         const clientStats = stats?.[clientId];
         let isActive = false;
         if (clientStats) {
-            Object.entries(clientStats.tracks).forEach(([trackId, trackStats]) => {
+            Object.entries(clientStats.tracks).forEach(([trackId, trackStats]: any) => {
                 if (trackId !== "probator")
-                    Object.values(trackStats.ssrcs).forEach((ssrcStats) => {
+                    Object.values(trackStats.ssrcs).forEach((ssrcStats: any) => {
                         if ((ssrcStats.bitrate || 0) > 0) isActive = true;
                     });
             });
@@ -241,7 +254,7 @@ export class ReconnectManager extends EventEmitter {
         return isActive;
     }
 
-    _onAudioEnabled(payload) {
+    _onAudioEnabled(payload: any) {
         const { clientId, isAudioEnabled } = payload;
         this._clients[clientId] = {
             ...(this._clients[clientId] || {}),
@@ -249,7 +262,7 @@ export class ReconnectManager extends EventEmitter {
         };
     }
 
-    _onVideoEnabled(payload) {
+    _onVideoEnabled(payload: any) {
         const { clientId, isVideoEnabled } = payload;
         this._clients[clientId] = {
             ...(this._clients[clientId] || {}),
@@ -257,7 +270,7 @@ export class ReconnectManager extends EventEmitter {
         };
     }
 
-    _onScreenshareChanged(payload, action) {
+    _onScreenshareChanged(payload: any, action: boolean) {
         const { clientId } = payload;
         this._clients[clientId] = {
             ...(this._clients[clientId] || {}),
@@ -265,7 +278,17 @@ export class ReconnectManager extends EventEmitter {
         };
     }
 
-    _hasClientStateChanged({ clientId, webcam, mic, screenShare }) {
+    _hasClientStateChanged({
+        clientId,
+        webcam,
+        mic,
+        screenShare,
+    }: {
+        clientId: string;
+        webcam: boolean;
+        mic: boolean;
+        screenShare: boolean;
+    }) {
         const state = this._clients[clientId];
 
         if (!state) {
@@ -285,7 +308,7 @@ export class ReconnectManager extends EventEmitter {
         return false;
     }
 
-    _addClientToState(newClient) {
+    _addClientToState(newClient: any) {
         this._clients[newClient.id] = {
             ...(this._clients[newClient.id] || {}),
             isAudioEnabled: newClient.isAudioEnabled,
@@ -297,7 +320,7 @@ export class ReconnectManager extends EventEmitter {
         };
     }
 
-    _wasClientSendingMedia(clientId) {
+    _wasClientSendingMedia(clientId: string) {
         const client = this._clients[clientId];
 
         if (!client) {
@@ -307,15 +330,15 @@ export class ReconnectManager extends EventEmitter {
         return client.isAudioEnabled || client.isVideoEnabled || client.isScreenshareEnabled;
     }
 
-    _getPendingClientsByDeviceId(deviceId) {
-        return Object.values(this._clients).filter((clientState) => {
+    _getPendingClientsByDeviceId(deviceId: string) {
+        return Object.values(this._clients).filter((clientState: any) => {
             return clientState.deviceId === deviceId && clientState.isPendingToLeave;
         });
     }
 
-    _resetClientState(payload) {
+    _resetClientState(payload: any) {
         this._clients = {};
-        payload.room.clients.forEach((client) => {
+        payload.room.clients.forEach((client: any) => {
             if (client.id === payload.selfId) {
                 return;
             } else {

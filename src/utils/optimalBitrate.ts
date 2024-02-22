@@ -5,7 +5,7 @@ const highBitratePerPixel = 1000000 / highPixelCount;
 const bitrateChangePerPixel = (highBitratePerPixel - lowBitratePerPixel) / (highPixelCount - lowPixelCount);
 
 // calculates a bitrate for a given resolution+frameRate
-export function getOptimalBitrate(width, height, frameRate) {
+export function getOptimalBitrate(width: number, height: number, frameRate: number) {
     let targetPixelCount = width * height;
     if (targetPixelCount < lowPixelCount) targetPixelCount = lowPixelCount;
     if (targetPixelCount > highPixelCount) targetPixelCount = highPixelCount;

@@ -14,8 +14,8 @@ export default class RtcStream {
     isAudioEnabled: boolean;
     isVideoEnabled: boolean;
     status: string;
-    stream: MediaStream;
-    streamId: string;
+    stream: MediaStream | null;
+    streamId: string | null;
 
     constructor(id: string, type: string) {
         this.id = "" + id;
@@ -26,6 +26,8 @@ export default class RtcStream {
         this.isAudioEnabled = true;
         this.isVideoEnabled = true;
         this.status = CONNECTION_STATUS_TYPES.CONNECTING;
+        this.stream = null;
+        this.streamId = null;
     }
 
     setup(stream: MediaStream) {

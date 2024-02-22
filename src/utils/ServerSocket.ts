@@ -13,7 +13,14 @@ const NOOP_KEEPALIVE_INTERVAL = 2000;
  * Wrapper class that extends the Socket.IO client library.
  */
 export default class ServerSocket {
-    constructor(hostName, optionsOverrides, glitchFree) {
+    _socket: any;
+    _reconnectManager: ReconnectManager | null;
+    noopKeepaliveInterval: any;
+    _wasConnectedUsingWebsocket?: boolean;
+
+    constructor(hostName: string, optionsOverrides: any, glitchFree = false) {
+        this._wasConnectedUsingWebsocket = false;
+        this._reconnectManager = null;
         this._socket = io(hostName, {
             path: DEFAULT_SOCKET_PATH,
             randomizationFactor: 0.5,
@@ -68,7 +75,7 @@ export default class ServerSocket {
         });
     }
 
-    setRtcManager(rtcManager) {
+    setRtcManager(rtcManager: any) {
         if (this._reconnectManager) {
             this._reconnectManager.rtcManager = rtcManager;
         }
@@ -91,11 +98,11 @@ export default class ServerSocket {
         });
     }
 
-    emit() {
+    emit(eventName: string, ...args: any[]) {
         this._socket.emit.apply(this._socket, arguments);
     }
 
-    emitIfConnected(eventName, data) {
+    emitIfConnected(eventName: string, data: any) {
         if (!this.isConnected()) {
             return;
         }
@@ -131,7 +138,7 @@ export default class ServerSocket {
      * @param {function} handler - The callback function that should be called for the event.
      * @returns {function} Function to deregister the listener.
      */
-    on(eventName, handler) {
+    on(eventName: string, handler: Function) {
         const relayableEvents = [
             PROTOCOL_RESPONSES.ROOM_JOINED,
             PROTOCOL_RESPONSES.CLIENT_LEFT,
@@ -156,7 +163,7 @@ export default class ServerSocket {
      * @param {string} eventName - Name of the event to listen for.
      * @param {function} handler - The function that should be called for the event.
      */
-    once(eventName, handler) {
+    once(eventName: string, handler: Function) {
         this._socket.once(eventName, handler);
     }
 
@@ -166,14 +173,14 @@ export default class ServerSocket {
      * @param {string} eventName - Name of the event the handler is registered for.
      * @param {function} handler - The callback that will be deregistered.
      */
-    off(eventName, handler) {
+    off(eventName: string, handler: Function) {
         this._socket.off(eventName, handler);
     }
 
     /**
      * Intercept event and let ReconnectManager handle them.
      */
-    _interceptEvent(eventName, handler) {
+    _interceptEvent(eventName: string, handler: any) {
         if (this._reconnectManager) {
             this._reconnectManager.on(eventName, handler);
         }
