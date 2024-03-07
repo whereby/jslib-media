@@ -7,10 +7,10 @@ const REPORTING_INTERVAL = 1000;
 // and we separate into 3 additional buckets to measure and track changes on various "loads"
 // avc = active video count (currently decoding videos)
 const buckets = [
-    { name: "all", test: ({ avc }) => avc >= 1 },
-    { name: "1", test: ({ avc }) => avc === 1 },
-    { name: "2to4", test: ({ avc }) => avc >= 2 && avc <= 4 },
-    { name: "5plus", test: ({ avc }) => avc >= 5 },
+    { name: "all", test: ({ avc }: { avc: number }) => avc >= 1 },
+    { name: "1", test: ({ avc }: { avc: number }) => avc === 1 },
+    { name: "2to4", test: ({ avc }: { avc: number }) => avc >= 2 && avc <= 4 },
+    { name: "5plus", test: ({ avc }: { avc: number }) => avc >= 5 },
 ];
 
 // performance monitor will measure and report the following fields into the above buckets, with aggregated min, max, avg, cur, sum and count
@@ -22,10 +22,18 @@ const buckets = [
 // The decoded fps / avc is provided outside by registerDecodedFps
 // The monitor should be "paused" when window/tab is inactive. This is done by providing a isHidden function/test,
 // and updateHidden to force it to run this test. Samples gathered when hidden wholly or partially are discarded.
-export function startPerformanceMonitor({ onMetricsUpdated, onTerminated, isHidden }) {
+export function startPerformanceMonitor({
+    onMetricsUpdated,
+    onTerminated,
+    isHidden,
+}: {
+    onMetricsUpdated: (aggregatedMetrics: any) => void;
+    onTerminated: () => void;
+    isHidden: () => boolean;
+}) {
     const decodedFpsSamplesByTrack = {};
-    let currentMetrics = {};
-    const aggregatedMetrics = {};
+    let currentMetrics: any = {};
+    const aggregatedMetrics: any = {};
     let wasHidden = false;
 
     const reportingInterval = setInterval(() => {
@@ -39,7 +47,7 @@ export function startPerformanceMonitor({ onMetricsUpdated, onTerminated, isHidd
             .filter((bucket) => bucket.test(currentMetrics))
             .forEach((bucket) => {
                 const bucketData = (aggregatedMetrics[bucket.name] = aggregatedMetrics[bucket.name] || {});
-                Object.entries(currentMetrics).forEach(([metric, value]) => {
+                Object.entries(currentMetrics).forEach(([metric, value]: any) => {
                     if (!bucketData[metric])
                         bucketData[metric] = {
                             min: value,
@@ -66,8 +74,8 @@ export function startPerformanceMonitor({ onMetricsUpdated, onTerminated, isHidd
         onMetricsUpdated?.(aggregatedMetrics);
     }, REPORTING_INTERVAL);
 
-    let stHandle = 0;
-    let ricHandle = 0;
+    let stHandle: any = 0;
+    let ricHandle: any = 0;
     const measureScheduling = () => {
         const before = performance.now();
         stHandle = setTimeout(() => {
@@ -75,6 +83,7 @@ export function startPerformanceMonitor({ onMetricsUpdated, onTerminated, isHidd
             currentMetrics = { ...currentMetrics, stLag: delayed };
 
             // also measure requestIdleCallback if supported
+            // @ts-ignore
             if (window.requestIdleCallback) {
                 const beforeRic = performance.now();
                 ricHandle = requestIdleCallback(
@@ -97,15 +106,17 @@ export function startPerformanceMonitor({ onMetricsUpdated, onTerminated, isHidd
     measureScheduling();
 
     return {
-        registerDecodedFps: (fpsData) => {
+        registerDecodedFps: (fpsData: any) => {
             if (wasHidden) return;
 
-            const volatilityScores = fpsData.map(({ trackId, fps }) => {
-                const samples = (decodedFpsSamplesByTrack[trackId] = decodedFpsSamplesByTrack[trackId] || []);
+            const volatilityScores = fpsData.map(({ trackId, fps }: any) => {
+                const samples = ((decodedFpsSamplesByTrack as any)[trackId] =
+                    (decodedFpsSamplesByTrack as any)[trackId] || []);
                 samples.push(fps) > WINDOW_SIZE && samples.shift();
-                const mean = samples.reduce((acc, val) => acc + val, 0) / samples.length;
+                const mean = samples.reduce((acc: number, val: number) => acc + val, 0) / samples.length;
                 const volatility =
-                    samples.reduce((acc, val) => acc + Math.abs(val - mean), 0) / (samples.length * mean);
+                    samples.reduce((acc: number, val: number) => acc + Math.abs(val - mean), 0) /
+                    (samples.length * mean);
                 return volatility;
             });
 

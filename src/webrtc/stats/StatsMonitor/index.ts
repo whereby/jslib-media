@@ -13,19 +13,19 @@ const logger = new Logger();
 const STATS_INTERVAL = 2000;
 
 let getClients = () => [];
-export const setClientProvider = (provider) => (getClients = provider);
+export const setClientProvider = (provider: any) => (getClients = provider);
 
-const statsByView = {};
+const statsByView: any = {};
 export const getStats = () => {
     return { ...statsByView };
 };
 
-let subscriptions = [];
-let currentMonitor = null;
+let subscriptions: any = [];
+let currentMonitor: any = null;
 
 export const getUpdatedStats = () => currentMonitor?.getUpdatedStats();
 
-const getOrCreateSsrcMetricsContainer = (time, pcIndex, clientId, trackId, ssrc) => {
+const getOrCreateSsrcMetricsContainer = (time: number, pcIndex: any, clientId: string, trackId: any, ssrc: any) => {
     let viewStats = statsByView[clientId];
     if (!viewStats) {
         viewStats = { tracks: {}, startTime: time, updated: time };
@@ -51,16 +51,16 @@ const getOrCreateSsrcMetricsContainer = (time, pcIndex, clientId, trackId, ssrc)
     return ssrcStats;
 };
 
-const removeNonUpdatedStats = (time) => {
-    Object.entries(statsByView).forEach(([viewId, viewStats]) => {
+const removeNonUpdatedStats = (time: number) => {
+    Object.entries(statsByView).forEach(([viewId, viewStats]: any) => {
         if (viewStats.updated < time) {
             delete statsByView[viewId];
         } else {
-            Object.entries(viewStats.tracks).forEach(([trackId, trackStats]) => {
+            Object.entries(viewStats.tracks).forEach(([trackId, trackStats]: any) => {
                 if (trackStats.updated < time) {
                     delete viewStats.tracks[trackId];
                 } else {
-                    Object.entries(trackStats.ssrcs).forEach(([ssrc, ssrcStats]) => {
+                    Object.entries(trackStats.ssrcs).forEach(([ssrc, ssrcStats]: any) => {
                         if (ssrcStats.updated < time) {
                             delete trackStats.ssrcs[ssrc];
                         }
@@ -76,7 +76,7 @@ const pcDataByPc = new WeakMap();
 
 const getPeerConnectionsWithStatsReports = () =>
     Promise.all(
-        getCurrentPeerConnections().map(async (pc) => {
+        getCurrentPeerConnections().map(async (pc: any) => {
             let pcData = pcDataByPc.get(pc);
             if (!pcData) {
                 pcData = { ssrcToTrackId: {} };
@@ -86,9 +86,9 @@ const getPeerConnectionsWithStatsReports = () =>
             try {
                 const report = await pc.getStats();
 
-                let missingSsrcs = null;
+                let missingSsrcs: any = null;
 
-                report.forEach((stats) => {
+                report.forEach((stats: any) => {
                     if (stats.type === "inbound-rtp" || stats.type === "outbound-rtp") {
                         if (!stats.trackIdentifier && !pcData.ssrcToTrackId[stats.ssrc]) {
                             // try to lookup by media-source
@@ -124,7 +124,7 @@ const getPeerConnectionsWithStatsReports = () =>
                     const sendersAndReceivers = [...pc.getSenders(), ...pc.getReceivers()];
                     const reports = await Promise.all(sendersAndReceivers.map((o) => o.getStats()));
                     reports.forEach((tReport, index) => {
-                        tReport.forEach((stats) => {
+                        tReport.forEach((stats: any) => {
                             if (stats.type === "inbound-rtp" || stats.type === "outbound-rtp") {
                                 pcData.ssrcToTrackId[stats.ssrc] = sendersAndReceivers[index].track.id;
                             }
@@ -132,7 +132,7 @@ const getPeerConnectionsWithStatsReports = () =>
                     });
 
                     // create fake track ids for anything not found
-                    missingSsrcs.forEach((ssrc) => {
+                    missingSsrcs.forEach((ssrc: any) => {
                         if (!pcData.ssrcToTrackId[ssrc]) {
                             pcData.ssrcToTrackId[ssrc] = "?" + ssrc;
                         }
@@ -166,19 +166,22 @@ function activateComputePressureOriginTrial() {
     originTrialActivated = true;
 }
 
-function startStatsMonitor({ interval }) {
-    let nextTimeout = 0;
+function startStatsMonitor({ interval }: { interval?: any }) {
+    let nextTimeout: any = 0;
 
     activateComputePressureOriginTrial();
 
-    let pressureObserver;
-    let lastPressureObserverRecord;
+    let pressureObserver: any;
+    let lastPressureObserverRecord: any;
 
     try {
         if ("PressureObserver" in window) {
-            pressureObserver = new window.PressureObserver((records) => (lastPressureObserverRecord = records.pop()), {
-                sampleRate: 1,
-            });
+            pressureObserver = new (window.PressureObserver as any)(
+                (records: any) => (lastPressureObserverRecord = records.pop()),
+                {
+                    sampleRate: 1,
+                }
+            );
             pressureObserver.observe("cpu");
         }
     } catch (ex) {
@@ -187,12 +190,12 @@ function startStatsMonitor({ interval }) {
 
     let lastUpdateTime = 0;
 
-    const collectStats = async (immediate) => {
+    const collectStats = async (immediate: any) => {
         try {
             // refresh provided clients before each run
             const clients = getClients();
             // general stats, and stats that cannot be matched to any client will be added to "selfview" / unknown
-            const defaultClient = clients.find((c) => c.isLocalClient && !c.isPresentation) || { id: "unknown" };
+            const defaultClient = clients.find((c: any) => c.isLocalClient && !c.isPresentation) || { id: "unknown" };
 
             // default stats need to be initialized
             let defaultViewStats = statsByView[defaultClient.id];
@@ -208,7 +211,7 @@ function startStatsMonitor({ interval }) {
             const timeSinceLastUpdate = Date.now() - lastUpdateTime;
             if (timeSinceLastUpdate < 400) {
                 if (immediate) return statsByView;
-                subscriptions.forEach((subscription) => subscription.onUpdatedStats?.(statsByView, clients));
+                subscriptions.forEach((subscription: any) => subscription.onUpdatedStats?.(statsByView, clients));
                 nextTimeout = setTimeout(collectStats, interval || STATS_INTERVAL);
                 return;
             }
@@ -232,7 +235,7 @@ function startStatsMonitor({ interval }) {
                 pcData.currentSSRCs = {};
 
                 // loop though each stats dictionary in report
-                report.forEach((currentRtcStats) => {
+                report.forEach((currentRtcStats: any) => {
                     if (
                         currentRtcStats.type === "candidate-pair" &&
                         /inprogress|succeeded/.test(currentRtcStats.state)
@@ -270,7 +273,7 @@ function startStatsMonitor({ interval }) {
                         }
 
                         // find the current client using this trackId, or default
-                        const client = clients.find((c) => c[kind].track?.id === trackId) || defaultClient;
+                        const client = clients.find((c: any) => c[kind].track?.id === trackId) || defaultClient;
 
                         pcData.currentSSRCs[ssrc] = client.id;
                         // we need to stats reset when selected candidate pair changes
@@ -327,7 +330,7 @@ function startStatsMonitor({ interval }) {
                             // remove
                             const clientView = statsByView[clientId];
                             if (clientView) {
-                                Object.values(clientView.tracks).forEach((trackStats) => {
+                                Object.values(clientView.tracks).forEach((trackStats: any) => {
                                     if (trackStats.ssrcs[ssrc]) {
                                         delete trackStats.ssrcs[ssrc];
                                     }
@@ -340,7 +343,7 @@ function startStatsMonitor({ interval }) {
             removeNonUpdatedStats(lastUpdateTime);
 
             // mark candidatepairs as active/inactive
-            Object.entries(defaultViewStats.candidatePairs).forEach(([cpKey, cp]) => {
+            Object.entries(defaultViewStats.candidatePairs).forEach(([cpKey, cp]: any) => {
                 const active = cp.lastRtcStatsTime === lastUpdateTime;
                 cp.active = active;
                 if (!active) {
@@ -358,7 +361,7 @@ function startStatsMonitor({ interval }) {
             if (immediate) {
                 return statsByView;
             } else {
-                subscriptions.forEach((subscription) => subscription.onUpdatedStats?.(statsByView, clients));
+                subscriptions.forEach((subscription: any) => subscription.onUpdatedStats?.(statsByView, clients));
             }
         } catch (ex) {
             logger.warn(ex);
@@ -381,7 +384,7 @@ function startStatsMonitor({ interval }) {
     };
 }
 
-export function subscribeStats(subscription) {
+export function subscribeStats(subscription: any) {
     subscriptions.push(subscription);
 
     // start the monitor on first subscription
@@ -389,7 +392,7 @@ export function subscribeStats(subscription) {
 
     return {
         stop() {
-            subscriptions = subscriptions.filter((s) => s !== subscription);
+            subscriptions = subscriptions.filter((s: any) => s !== subscription);
             if (!subscriptions.length) {
                 // stop monitor when last subscription is stopped/removed
                 currentMonitor?.stop();

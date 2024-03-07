@@ -1,4 +1,10 @@
-export function captureCandidatePairInfoMetrics(cpMetrics, currentCptats, prevCptats, timeDiff, report) {
+export function captureCandidatePairInfoMetrics(
+    cpMetrics: any,
+    currentCptats: any,
+    prevCptats: any,
+    timeDiff: any,
+    report: any
+) {
     const bytesReceivedDiff = currentCptats.bytesReceived - (prevCptats?.bytesReceived || 0);
     const bytesSentDiff = currentCptats.bytesSent - (prevCptats?.bytesSent || 0);
 
@@ -26,7 +32,13 @@ export function captureCandidatePairInfoMetrics(cpMetrics, currentCptats, prevCp
     }
 }
 
-export function captureSsrcInfo(ssrcMetrics, currentSsrcStats, prevSsrcStats, timeDiff, report) {
+export function captureSsrcInfo(
+    ssrcMetrics: any,
+    currentSsrcStats: any,
+    prevSsrcStats: any,
+    timeDiff: any,
+    report: any
+) {
     // we only update this until we receive codec stats
     if (ssrcMetrics.codec) return;
 
@@ -52,7 +64,13 @@ export function captureSsrcInfo(ssrcMetrics, currentSsrcStats, prevSsrcStats, ti
     ssrcMetrics.rid = currentSsrcStats.rid;
 }
 
-export function captureCommonSsrcMetrics(ssrcMetrics, currentSsrcStats, prevSsrcStats, timeDiff, report) {
+export function captureCommonSsrcMetrics(
+    ssrcMetrics: any,
+    currentSsrcStats: any,
+    prevSsrcStats: any,
+    timeDiff: any,
+    report: any
+) {
     const nackCountDiff = (currentSsrcStats.nackCount || 0) - (prevSsrcStats?.nackCount || 0);
     ssrcMetrics.nackCount = (ssrcMetrics.nackCount || 0) + nackCountDiff;
     ssrcMetrics.nackRate = (1000 * nackCountDiff) / timeDiff;
@@ -116,7 +134,13 @@ export function captureCommonSsrcMetrics(ssrcMetrics, currentSsrcStats, prevSsrc
     }
 }
 
-export function captureAudioSsrcMetrics(ssrcMetrics, currentSsrcStats, prevSsrcStats) {
+export function captureAudioSsrcMetrics(
+    ssrcMetrics: any,
+    currentSsrcStats: any,
+    prevSsrcStats: any,
+    timeDiff: any,
+    report: any
+) {
     const packetsDiscardedDiff = currentSsrcStats.packetsDiscarded - (prevSsrcStats?.packetsDiscarded || 0);
     ssrcMetrics.packetsDiscarded = (ssrcMetrics.packetsDiscarded || 0) + packetsDiscardedDiff;
 
@@ -149,7 +173,13 @@ export function captureAudioSsrcMetrics(ssrcMetrics, currentSsrcStats, prevSsrcS
     }
 }
 
-export function captureVideoSsrcMetrics(ssrcMetrics, currentSsrcStats, prevSsrcStats, timeDiff, report) {
+export function captureVideoSsrcMetrics(
+    ssrcMetrics: any,
+    currentSsrcStats: any,
+    prevSsrcStats: any,
+    timeDiff: any,
+    report: any
+) {
     ssrcMetrics.width = currentSsrcStats.frameWidth;
     ssrcMetrics.height = currentSsrcStats.frameHeight;
 
