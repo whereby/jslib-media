@@ -1,4 +1,12 @@
 export class KalmanFilter {
+    R: number;
+    Q: number;
+    A: number;
+    C: number;
+    B: number;
+    cov: number;
+    x: number;
+
     /**
      * Create 1-dimensional kalman filter
      * @param  {Number} options.R Process noise
@@ -25,7 +33,7 @@ export class KalmanFilter {
      * @param  {Number} u Control
      * @return {Number}
      */
-    filter(z, u = 0) {
+    filter(z: number, u: number = 0) {
         if (isNaN(this.x)) {
             this.x = (1 / this.C) * z;
             this.cov = (1 / this.C) * this.Q * (1 / this.C);
@@ -74,7 +82,7 @@ export class KalmanFilter {
      * Set measurement noise Q
      * @param {Number} noise
      */
-    setMeasurementNoise(noise) {
+    setMeasurementNoise(noise: number) {
         this.Q = noise;
     }
 
@@ -82,7 +90,7 @@ export class KalmanFilter {
      * Set the process noise R
      * @param {Number} noise
      */
-    setProcessNoise(noise) {
+    setProcessNoise(noise: number) {
         this.R = noise;
     }
 }
@@ -91,7 +99,7 @@ export const createACFCalculator = () => {
     let ewma = -1;
     let lastMax = 0;
     let counter = 0;
-    return (arr) => {
+    return (arr: any[]) => {
         const max = arr.reduce((acc, val) => acc + val, 0) / arr.length;
         // const max = Math.max(...arr);
         if (ewma < 0) {
@@ -110,12 +118,15 @@ export const createACFCalculator = () => {
     };
 };
 
-export const calculateStd = (arr) => {
+export const calculateStd = (arr: any[]) => {
     const mean = arr.reduce((acc, val) => acc + val, 0) / arr.length;
-    return arr.reduce((acc, val) => acc.concat((val - mean) ** 2), []).reduce((acc, val) => acc + val, 0) / arr.length;
+    return (
+        arr.reduce((acc, val) => acc.concat((val - mean) ** 2), []).reduce((acc: number, val: number) => acc + val, 0) /
+        arr.length
+    );
 };
 
-export const standardDeviation = (arr /*, usePopulation = false*/) => {
+export const standardDeviation = (arr: any[] /*, usePopulation = false*/) => {
     const mean = arr.reduce((acc, val) => acc + val, 0) / arr.length;
     return {
         mean,
@@ -123,10 +134,10 @@ export const standardDeviation = (arr /*, usePopulation = false*/) => {
     };
 };
 
-export const variance = (arr, usePopulation = false) => {
+export const variance = (arr: any[], usePopulation = false) => {
     const mean = arr.reduce((acc, val) => acc + val, 0) / arr.length;
     return (
-        arr.reduce((acc, val) => acc.concat((val - mean) ** 2), []).reduce((acc, val) => acc + val, 0) /
+        arr.reduce((acc, val) => acc.concat((val - mean) ** 2), []).reduce((acc: number, val: number) => acc + val, 0) /
         (arr.length - (usePopulation ? 0 : 1))
     );
 };

@@ -1,5 +1,5 @@
 export default class SfuV2Parser {
-    static parse(raw) {
+    static parse(raw: any) {
         let object;
 
         try {
@@ -27,8 +27,8 @@ export default class SfuV2Parser {
         }
     }
 
-    static _handleRequest(rawMessage) {
-        const message = {};
+    static _handleRequest(rawMessage: any) {
+        const message: any = {};
         message.request = true;
 
         if (typeof rawMessage.method !== "string") {
@@ -46,8 +46,8 @@ export default class SfuV2Parser {
         return message;
     }
 
-    static _handleResponse(rawMessage) {
-        const message = {};
+    static _handleResponse(rawMessage: any) {
+        const message: any = {};
         message.response = true;
 
         if (typeof rawMessage.id !== "number") {
@@ -70,8 +70,8 @@ export default class SfuV2Parser {
         return message;
     }
 
-    static _handleMessage(rawMessage) {
-        const message = {};
+    static _handleMessage(rawMessage: any) {
+        const message: any = {};
         message.message = true;
 
         if (typeof rawMessage.method !== "string") {
@@ -84,7 +84,7 @@ export default class SfuV2Parser {
         return message;
     }
 
-    static createRequest(method, data) {
+    static createRequest(method: any, data: any) {
         return {
             request: true,
             id: Math.round(Math.random() * 10000000),
@@ -93,7 +93,7 @@ export default class SfuV2Parser {
         };
     }
 
-    static createSuccessResponse(request, data) {
+    static createSuccessResponse(request: any, data: any) {
         return {
             response: true,
             id: request.id,
@@ -102,7 +102,7 @@ export default class SfuV2Parser {
         };
     }
 
-    static createErrorResponse(request, errorCode, errorReason) {
+    static createErrorResponse(request: any, errorCode: any, errorReason: any) {
         return {
             response: true,
             id: request.id,
@@ -111,7 +111,7 @@ export default class SfuV2Parser {
         };
     }
 
-    static createMessage(method, data) {
+    static createMessage(method: any, data: any) {
         return {
             message: true,
             method,

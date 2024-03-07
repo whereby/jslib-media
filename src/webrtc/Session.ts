@@ -9,7 +9,47 @@ const adapter = adapterRaw.default ?? adapterRaw;
 const logger = new Logger();
 
 export default class Session {
-    constructor({ peerConnectionId, bandwidth, maximumTurnBandwidth, deprioritizeH264Encoding }) {
+    peerConnectionId: any;
+    relayCandidateSeen: boolean;
+    serverReflexiveCandidateSeen: boolean;
+    publicHostCandidateSeen: boolean;
+    ipv6HostCandidateSeen: boolean;
+    ipv6HostCandidateTeredoSeen: boolean;
+    ipv6HostCandidate6to4Seen: boolean;
+    mdnsHostCandidateSeen: boolean;
+    pc: any;
+    wasEverConnected: boolean;
+    connectionStatus: any;
+    stats: { totalSent: number; totalRecv: number };
+    bandwidth: any;
+    maximumTurnBandwidth: any;
+    pending: any[];
+    isOperationPending: boolean;
+    streamIds: any[];
+    streams: any[];
+    earlyIceCandidates: any[];
+    afterConnected: Promise<unknown>;
+    registerConnected: any;
+    offerOptions: { offerToReceiveAudio: boolean; offerToReceiveVideo: boolean };
+    _deprioritizeH264Encoding: any;
+    clientId: any;
+    peerConnectionConfig: any;
+    shouldAddLocalVideo: any;
+    signalingState: any;
+    srdComplete: any;
+    pendingOffer: any;
+
+    constructor({
+        peerConnectionId,
+        bandwidth,
+        maximumTurnBandwidth,
+        deprioritizeH264Encoding,
+    }: {
+        peerConnectionId: any;
+        bandwidth: any;
+        maximumTurnBandwidth: any;
+        deprioritizeH264Encoding: any;
+    }) {
         this.peerConnectionId = peerConnectionId;
         this.relayCandidateSeen = false;
         this.serverReflexiveCandidateSeen = false;
@@ -40,11 +80,22 @@ export default class Session {
         this._deprioritizeH264Encoding = deprioritizeH264Encoding;
     }
 
-    setAndGetPeerConnection({ clientId, constraints, peerConnectionConfig, shouldAddLocalVideo }) {
+    setAndGetPeerConnection({
+        clientId,
+        constraints,
+        peerConnectionConfig,
+        shouldAddLocalVideo,
+    }: {
+        clientId: any;
+        constraints: any;
+        peerConnectionConfig: any;
+        shouldAddLocalVideo: any;
+    }) {
         this.peerConnectionConfig = peerConnectionConfig;
         this.shouldAddLocalVideo = shouldAddLocalVideo;
         this.clientId = clientId;
-        this.pc = new RTCPeerConnection(peerConnectionConfig, constraints);
+        // this.pc = new RTCPeerConnection(peerConnectionConfig, constraints);
+        this.pc = new RTCPeerConnection(peerConnectionConfig);
         this.signalingState = this.pc.signalingState;
 
         this.pc.addEventListener("signalingstatechange", () => {
@@ -65,9 +116,10 @@ export default class Session {
         return this.pc;
     }
 
-    addStream(stream) {
+    addStream(stream: MediaStream) {
         this.streamIds.push(stream.id);
         this.streams.push(stream);
+        // @ts-ignore
         if (RTCPeerConnection.prototype.addTrack) {
             stream.getAudioTracks().forEach((track) => {
                 this.pc.addTrack(track, stream);
@@ -81,24 +133,24 @@ export default class Session {
         }
     }
 
-    addTrack(track, stream) {
+    addTrack(track: MediaStreamTrack, stream?: MediaStream) {
         if (!stream) {
             stream = this.streams[0];
         }
-        stream.addTrack(track);
+        stream?.addTrack(track);
         this.pc.addTrack(track, stream);
     }
 
-    removeTrack(track) {
+    removeTrack(track: MediaStreamTrack) {
         const stream = this.streams[0];
         stream.removeTrack(track);
-        const sender = this.pc.getSenders().find((sender) => sender.track === track);
+        const sender = this.pc.getSenders().find((sender: any) => sender.track === track);
         if (sender) {
             this.pc.removeTrack(sender);
         }
     }
 
-    removeStream(stream) {
+    removeStream(stream: MediaStream) {
         for (let i = 0; i < this.streamIds.length; i++) {
             if (this.streamIds[i] === stream.id) {
                 this.streamIds.splice(i, 1);
@@ -109,7 +161,7 @@ export default class Session {
         if (this.pc) {
             if (this.pc.removeTrack) {
                 stream.getTracks().forEach((track) => {
-                    const sender = this.pc.getSenders().find((sender) => sender.track === track);
+                    const sender = this.pc.getSenders().find((sender: any) => sender.track === track);
                     if (sender) {
                         this.pc.removeTrack(sender);
                     }
@@ -120,7 +172,7 @@ export default class Session {
         }
     }
 
-    _setRemoteDescription(desc) {
+    _setRemoteDescription(desc: any) {
         // deprioritize H264 Encoding if set by option/flag
         if (this._deprioritizeH264Encoding) desc.sdp = sdpModifier.deprioritizeH264(desc.sdp);
 
@@ -132,7 +184,7 @@ export default class Session {
         });
     }
 
-    handleOffer(message) {
+    handleOffer(message: any) {
         if (!this.canModifyPeerConnection()) {
             return new Promise((resolve) => {
                 this.pending.push(() => this.handleOffer(message).then(resolve));
@@ -146,13 +198,13 @@ export default class Session {
 
         const desc = { type: message.type, sdp };
         // Create an answer to send to the client that sent the offer
-        let answerToSignal;
+        let answerToSignal: any;
 
         return this._setRemoteDescription(desc)
             .then(() => {
                 return this.pc.createAnswer();
             })
-            .then((answer) => {
+            .then((answer: any) => {
                 answerToSignal = answer;
                 return this.pc.setLocalDescription(answer);
             })
@@ -164,7 +216,7 @@ export default class Session {
             });
     }
 
-    handleAnswer(message) {
+    handleAnswer(message: any) {
         // workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1394602
         if (this.pendingOffer) {
             const pendingOffer = this.pendingOffer;
@@ -180,13 +232,13 @@ export default class Session {
             () => {
                 return setVideoBandwidthUsingSetParameters(this.pc, this.bandwidth);
             },
-            (e) => {
+            (e: any) => {
                 logger.warn("Could not set remote description from remote answer: ", e);
             }
         );
     }
 
-    addIceCandidate(candidate) {
+    addIceCandidate(candidate: any) {
         if (!this.srdComplete) {
             // In theory this is a protocol violation. However, our Javascript can signal an
             // answer after the first candidates.
@@ -201,7 +253,7 @@ export default class Session {
                 // filter due to https://github.com/webrtcHacks/adapter/issues/863
                 return;
             }
-            this.pc.addIceCandidate(candidate).catch((e) => {
+            this.pc.addIceCandidate(candidate).catch((e: any) => {
                 logger.warn("Failed to add ICE candidate ('%s'): %s", candidate ? candidate.candidate : null, e);
             });
         });
@@ -233,17 +285,17 @@ export default class Session {
         return this.pc && this.pc.connectionState === "connected";
     }
 
-    replaceTrack(oldTrack, newTrack) {
+    replaceTrack(oldTrack: MediaStreamTrack, newTrack: MediaStreamTrack) {
         const pc = this.pc;
         // This shouldn't really happen
         if (!pc) return false;
         const senders = pc.getSenders();
-        function dbg(msg) {
-            const tr = (t) => t && `id:${t.id},kind:${t.kind},state:${t.readyState}`;
+        function dbg(msg: string) {
+            const tr = (t: any) => t && `id:${t.id},kind:${t.kind},state:${t.readyState}`;
             logger.warn(
                 `${msg}. newTrack:${tr(newTrack)}, oldTrack:${tr(oldTrack)}, sender tracks: ${JSON.stringify(
-                    senders.map((s) => `s ${tr(s.track)}`)
-                )}, sender first codecs: ${JSON.stringify(senders.map((s) => (s.getParameters().codecs || [])[0]))}`
+                    senders.map((s: any) => `s ${tr(s.track)}`)
+                )}, sender first codecs: ${JSON.stringify(senders.map((s: any) => (s.getParameters().codecs || [])[0]))}`
             );
         }
         if (!senders.length) {
@@ -251,13 +303,14 @@ export default class Session {
         }
         // If we didn't specify oldTrack, replace with first of its kind
         if (!oldTrack) {
-            oldTrack = (senders.find((s) => s.track && s.track.kind === newTrack.kind) || {}).track;
+            oldTrack = (senders.find((s: any) => s.track && s.track.kind === newTrack.kind) || {}).track;
             if (!oldTrack) {
                 // odin: Temporary debug data, remove if you see after 2020-12-01
                 dbg("No sender with same kind! Add new track then.");
             }
         }
         // Modern browsers makes things simple.
+        // @ts-ignore
         if (window.RTCRtpSender && window.RTCRtpSender.prototype.replaceTrack) {
             if (oldTrack) {
                 const process = () => {
@@ -281,14 +334,14 @@ export default class Session {
                 if (result) {
                     return result;
                 }
-                let resolve = null;
-                let reject = null;
+                let resolve: any = null;
+                let reject: any = null;
                 result = new Promise((_resolve, _reject) => {
                     resolve = _resolve;
                     reject = _reject;
                 });
                 let retried = 0;
-                let timer = setInterval(async () => {
+                let timer: any = setInterval(async () => {
                     const trackReplacedPromise = process();
                     if (!trackReplacedPromise) {
                         if (3 < ++retried) {
@@ -308,7 +361,8 @@ export default class Session {
                 // we already know that the track has been added at least to the mediastream
                 return result;
             }
-            const stream = this.streams.find((s) => s.getTracks().find((t) => t.id === newTrack.id)) || this.streams[0];
+            const stream =
+                this.streams.find((s) => s.getTracks().find((t: any) => t.id === newTrack.id)) || this.streams[0];
             if (!stream) {
                 dbg("No stream?");
                 return Promise.reject(new Error("replaceTrack: No stream?"));
@@ -337,7 +391,7 @@ export default class Session {
         if (pc.localDescription.type === "offer") {
             return pc
                 .createOffer()
-                .then((offer) => {
+                .then((offer: any) => {
                     offer.sdp = sdpModifier.replaceSSRCs(pc.localDescription.sdp, offer.sdp);
                     return pc.setLocalDescription(offer);
                 })
@@ -349,7 +403,7 @@ export default class Session {
                 .then(() => {
                     return pc.createAnswer();
                 })
-                .then((answer) => {
+                .then((answer: any) => {
                     answer.sdp = sdpModifier.replaceSSRCs(pc.localDescription.sdp, answer.sdp);
                     return pc.setLocalDescription(answer);
                 });
@@ -367,7 +421,7 @@ export default class Session {
         if (!this.pc.getStats) {
             return;
         }
-        statsHelper.isRelayed(this.pc).then((isRelayed) => {
+        statsHelper.isRelayed(this.pc).then((isRelayed: boolean) => {
             if (isRelayed && this.bandwidth === 0) {
                 this.changeBandwidth(this.maximumTurnBandwidth);
             }
@@ -376,7 +430,7 @@ export default class Session {
 
     // no-signaling negotiation of bandwidth. Peer is NOT informed.
     // Prefers using RTCRtpSender.setParameters if possible.
-    changeBandwidth(bandwidth) {
+    changeBandwidth(bandwidth: any) {
         // don't renegotiate if bandwidth is already set.
         if (bandwidth === this.bandwidth) {
             return;
@@ -395,17 +449,17 @@ export default class Session {
         setVideoBandwidthUsingSetParameters(this.pc, this.bandwidth);
     }
 
-    setAudioOnly(enable, excludedTrackIds = []) {
+    setAudioOnly(enable: boolean, excludedTrackIds: any[] = []) {
         this.pc
             .getTransceivers()
             .filter(
-                (videoTransceiver) =>
+                (videoTransceiver: any) =>
                     videoTransceiver?.direction !== "recvonly" &&
                     videoTransceiver?.receiver?.track?.kind === "video" &&
                     !excludedTrackIds.includes(videoTransceiver?.receiver?.track?.id) &&
                     !excludedTrackIds.includes(videoTransceiver?.sender?.track?.id)
             )
-            .forEach((videoTransceiver) => {
+            .forEach((videoTransceiver: any) => {
                 videoTransceiver.direction = enable ? "sendonly" : "sendrecv";
             });
     }

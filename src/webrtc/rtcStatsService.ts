@@ -20,22 +20,22 @@ const noop = () => {};
 let resetDelta = noop;
 
 // Inlined version of rtcstats/trace-ws with improved disconnect handling.
-function rtcStatsConnection(wsURL, logger = console) {
-    const buffer = [];
-    let ws;
-    let organizationId;
-    let clientId;
-    let displayName;
-    let userRole;
-    let roomSessionId;
-    let connectionShouldBeOpen;
+function rtcStatsConnection(wsURL: string, logger: any = console) {
+    const buffer: any = [];
+    let ws: any;
+    let organizationId: number;
+    let clientId: string;
+    let displayName: string;
+    let userRole: string;
+    let roomSessionId: any;
+    let connectionShouldBeOpen: any;
     let connectionAttempt = 0;
     let hasPassedOnRoomSessionId = false;
     let getStatsBufferUsed = 0;
 
     const connection = {
         connected: false,
-        trace: (...args) => {
+        trace: (...args: any) => {
             args.push(Date.now());
 
             if (args[0] === "customEvent" && args[2].type === "roomSessionId") {
@@ -107,11 +107,11 @@ function rtcStatsConnection(wsURL, logger = console) {
             connection.connected = true;
             ws = new WebSocket(wsURL + window.location.pathname, RTCSTATS_PROTOCOL_VERSION);
 
-            ws.onerror = (e) => {
+            ws.onerror = (e: any) => {
                 connection.connected = false;
                 logger.warn(`[RTCSTATS] WebSocket error`, e);
             };
-            ws.onclose = (e) => {
+            ws.onclose = (e: any) => {
                 connection.connected = false;
                 logger.info(`[RTCSTATS] Closed ${e.code}`);
                 resetDelta();
@@ -161,16 +161,16 @@ const stats = rtcstats(
 resetDelta = stats?.resetDelta || noop;
 
 const rtcStats = {
-    sendEvent: (type, value) => {
+    sendEvent: (type: any, value: any) => {
         server.trace("customEvent", null, {
             type,
             value,
         });
     },
-    sendAudioMuted: (muted) => {
+    sendAudioMuted: (muted: boolean) => {
         rtcStats.sendEvent("audio_muted", { muted });
     },
-    sendVideoMuted: (muted) => {
+    sendVideoMuted: (muted: boolean) => {
         rtcStats.sendEvent("video_muted", { muted });
     },
     server,

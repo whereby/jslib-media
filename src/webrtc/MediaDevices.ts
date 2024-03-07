@@ -1,5 +1,4 @@
 import getConstraints from "./mediaConstraints";
-import assert from "../utils/assert";
 import Logger from "../utils/Logger";
 
 const logger = new Logger();
@@ -7,15 +6,16 @@ const logger = new Logger();
 export const isMobile = /mobi/i.test(navigator.userAgent);
 
 export class NoDevicesError extends Error {
-    constructor(...args) {
+    constructor(...args: any) {
         super(...args);
         this.name = "nodevices";
     }
 }
 
-function removeDuplicates(devices) {
+function removeDuplicates(devices: any) {
     return devices.filter(
-        (device, i, self) => i === self.findIndex((d) => d.deviceId === device.deviceId && d.kind === device.kind)
+        (device: any, i: number, self: any) =>
+            i === self.findIndex((d: any) => d.deviceId === device.deviceId && d.kind === device.kind)
     );
 }
 
@@ -40,24 +40,26 @@ const idFieldsByKind = {
  * @param args.kind - filter by "audioinput" | "videoinput" | "audiooutput"
  * @returns Array<{[idField]: deviceId}>
  */
-export function buildDeviceList({ busyDeviceIds, devices, kind }) {
+export function buildDeviceList({ busyDeviceIds, devices, kind }: any) {
     const deviceList =
         devices &&
         devices.length &&
         devices
-            .filter((d) => d.kind === kind)
-            .map((d) => ({
-                [idFieldsByKind[kind]]: d.deviceId,
+            .filter((d: any) => d.kind === kind)
+            .map((d: any) => ({
+                [(idFieldsByKind as any)[kind]]: d.deviceId,
                 label: `${busyDeviceIds.includes(d.deviceId) ? "(busy) " : ""}${d.label || d.deviceId.slice(0, 5)}`,
                 busy: busyDeviceIds.includes(d.deviceId),
             }));
-    return deviceList && deviceList.length !== 0 ? deviceList : [{ [idFieldsByKind[kind]]: "", label: "Default" }];
+    return deviceList && deviceList.length !== 0
+        ? deviceList
+        : [{ [(idFieldsByKind as any)[kind]]: "", label: "Default" }];
 }
 
 /**
  * Basically just wrapping getUserMedia
  */
-export function getUserMedia(constraints) {
+export function getUserMedia(constraints: any) {
     if (!constraints.audio && !constraints.video) {
         return Promise.reject(new NoDevicesError("No provided devices"));
     }
@@ -69,14 +71,14 @@ export function getUserMedia(constraints) {
     });
 }
 
-function getSettingsFromTrack(kind, track, devices, lastUsedId) {
-    let settings = { deviceId: null };
+function getSettingsFromTrack(kind: string, track: any, devices: any, lastUsedId: any) {
+    let settings: any = { deviceId: null };
 
     if (!track) {
         // In SFU V2 the track can be closed by the RtcManager, so check if the
         // last used deviceId still is available
         if (lastUsedId && devices) {
-            settings.deviceId = devices.find((d) => d.deviceId === lastUsedId && d.kind === kind)?.deviceId;
+            settings.deviceId = devices.find((d: any) => d.deviceId === lastUsedId && d.kind === kind)?.deviceId;
         }
         return settings;
     }
@@ -99,7 +101,7 @@ function getSettingsFromTrack(kind, track, devices, lastUsedId) {
     // Firefox ESR (guessing), has no way of getting deviceId, but
     // it probably gives us label, let's use that to find it!
     if (track.label && devices) {
-        settings.deviceId = devices.find((d) => track.label === d.label && d.kind === kind)?.deviceId;
+        settings.deviceId = devices.find((d: any) => track.label === d.label && d.kind === kind)?.deviceId;
     }
     if (settings.deviceId) return settings;
 
@@ -116,8 +118,8 @@ function getSettingsFromTrack(kind, track, devices, lastUsedId) {
  *
  * @returns {{video: {deviceId}, audio: {deviceId}}} - the ids are null if not found
  */
-export function getDeviceData({ audioTrack, videoTrack, devices, stoppedVideoTrack, lastAudioId, lastVideoId }) {
-    const usable = (d) => (d?.readyState === "live" ? d : null);
+export function getDeviceData({ audioTrack, videoTrack, devices, stoppedVideoTrack, lastAudioId, lastVideoId }: any) {
+    const usable = (d: any) => (d?.readyState === "live" ? d : null);
     videoTrack = usable(videoTrack) || stoppedVideoTrack;
     audioTrack = usable(audioTrack);
     const video = getSettingsFromTrack("videoinput", videoTrack, devices, lastVideoId);
@@ -129,43 +131,53 @@ export function getDeviceData({ audioTrack, videoTrack, devices, stoppedVideoTra
 /**
  * Stops all tracks in a media stream.
  */
-export function stopStreamTracks(stream, only) {
-    assert(!only || ["audio", "video"].includes(only), "only is invalid");
-    if (!only || only === "audio") stream.getAudioTracks().forEach((t) => t.stop());
-    if (!only || only === "video") stream.getVideoTracks().forEach((t) => t.stop());
+export function stopStreamTracks(stream: MediaStream, only: "audio" | "video") {
+    if (!only || only === "audio") stream.getAudioTracks().forEach((t: MediaStreamTrack) => t.stop());
+    if (!only || only === "video") stream.getVideoTracks().forEach((t: MediaStreamTrack) => t.stop());
 }
 
 /**
  * Replaces tracks in stream with tracks from newStream
  */
-export function replaceTracksInStream(stream, newStream, only) {
+export function replaceTracksInStream(stream: MediaStream, newStream: MediaStream, only: "audio" | "video") {
     // adds before remove to not make stream.ended fire
     // https://github.com/w3c/mediacapture-main/issues/519
     const replacedTracks = [];
     if (!only || only === "audio") {
         replacedTracks.push(...stream.getAudioTracks());
-        newStream.getAudioTracks().forEach((track) => {
+        newStream.getAudioTracks().forEach((track: any) => {
             track.replacement = true;
             stream.addTrack(track);
         });
     }
     if (!only || only === "video") {
         replacedTracks.push(...stream.getVideoTracks());
-        newStream.getVideoTracks().forEach((track) => {
+        newStream.getVideoTracks().forEach((track: any) => {
             track.replacement = true;
             stream.addTrack(track);
         });
     }
-    replacedTracks.forEach((track) => {
+    replacedTracks.forEach((track: any) => {
         track.replaced = true;
         stream.removeTrack(track);
     });
     return replacedTracks;
 }
 
-async function getTrack({ kind, deviceId, type, fallback = true, primerTrack }) {
-    assert(kind === "audio" || kind === "video", "kind must be audio|video");
-    const devId = (deviceId) => (type === "exact" ? { deviceId: { exact: deviceId } } : { deviceId });
+async function getTrack({
+    kind,
+    deviceId,
+    type,
+    fallback = true,
+    primerTrack,
+}: {
+    kind: "audio" | "video";
+    deviceId: string;
+    type: string;
+    fallback: any;
+    primerTrack: any;
+}) {
+    const devId = (deviceId: any) => (type === "exact" ? { deviceId: { exact: deviceId } } : { deviceId });
 
     const constraints = {
         [kind]: deviceId ? devId(deviceId) : kind === "video" ? { facingMode: "user" } : true,
@@ -174,7 +186,7 @@ async function getTrack({ kind, deviceId, type, fallback = true, primerTrack }) 
     let stream;
     try {
         stream = await getUserMedia(constraints);
-    } catch (e) {
+    } catch (e: any) {
         if (!fallback) {
             e.details = { constraints, constraint: e.constraint };
             throw e;
@@ -188,7 +200,7 @@ async function getTrack({ kind, deviceId, type, fallback = true, primerTrack }) 
     return stream.getTracks()[0];
 }
 
-async function constrainTrack(track, constraints) {
+async function constrainTrack(track: any, constraints: any) {
     while (constraints.length) {
         try {
             await track.applyConstraints(Object.assign({}, ...constraints));
@@ -200,14 +212,12 @@ async function constrainTrack(track, constraints) {
     }
 }
 
-export async function getStream2(constraintOpt, additionalOpts = {}) {
-    assert(constraintOpt, "constraints is required");
-
+export async function getStream2(constraintOpt: any, additionalOpts: any = {}) {
     const { audioId, videoId, devices, type, options } = constraintOpt;
     const { replaceStream, fallback } = additionalOpts;
-    const hasGrantedPermissions = !!devices.find((d) => d.label !== "");
-    let audioPrimerTrack;
-    let videoPrimerTrack;
+    const hasGrantedPermissions = !!devices.find((d: any) => d.label !== "");
+    let audioPrimerTrack: any;
+    let videoPrimerTrack: any;
 
     if (!hasGrantedPermissions) {
         try {
@@ -218,7 +228,7 @@ export async function getStream2(constraintOpt, additionalOpts = {}) {
 
             audioPrimerTrack = primerStream.getAudioTracks()[0];
             videoPrimerTrack = primerStream.getVideoTracks()[0];
-        } catch (err) {
+        } catch (err: any) {
             if (err.name === "NotAllowedError") {
                 throw err;
             }
@@ -305,7 +315,7 @@ export async function getStream2(constraintOpt, additionalOpts = {}) {
     const newStream = new MediaStream([audioTrack, videoTrack].filter(Boolean));
     let replacedTracks;
     if (replaceStream) {
-        const only = (audioId === false && "video") || (videoId === false && "audio");
+        const only = (audioId === false && "video") || (videoId === false && "audio") || "audio";
         replacedTracks = replaceTracksInStream(replaceStream, newStream, only);
     }
 
@@ -320,21 +330,20 @@ export async function getStream2(constraintOpt, additionalOpts = {}) {
  * @param options.fallback - try to give working stream
  * @returns {Promise<{stream, error=null}>}
  */
-export async function getStream(constraintOpt, { replaceStream, fallback = true } = {}) {
-    assert(constraintOpt, "constraints is required");
+export async function getStream(constraintOpt: any, { replaceStream, fallback = true }: any = {}) {
+    let error: any;
+    let newConstraints: any;
+    let retryConstraintOpt: any;
+    let stream: MediaStream | null = null;
 
-    let error;
-    let newConstraints;
-    let retryConstraintOpt;
-    let stream;
-
-    const only = (constraintOpt.audioId === false && "video") || (constraintOpt.videoId === false && "audio");
+    const only =
+        (constraintOpt.audioId === false && "video") || (constraintOpt.videoId === false && "audio") || "audio";
     // Mobile can't open two devices at once. Firefox also can't open two audio devices at once.
     // It looks nicer when we don't stop tracks while getting new streams, so we try to not do it
     // unless required.
     const stopTracks = isMobile || only !== "video";
     const constraints = getConstraints(constraintOpt);
-    const addDetails = (err, orgErr) => {
+    const addDetails = (err: any, orgErr?: any) => {
         err.details = {
             constraints,
             constraint: err.constraint || orgErr?.constraint,
@@ -348,18 +357,18 @@ export async function getStream(constraintOpt, { replaceStream, fallback = true 
     if (stopTracks && replaceStream) stopStreamTracks(replaceStream, only);
     try {
         stream = await getUserMedia(constraints);
-    } catch (e) {
+    } catch (e: any) {
         error = e;
         if (!fallback) {
             throw addDetails(e);
         }
         if (e.name === "OverconstrainedError") {
-            retryConstraintOpt = {
+            (retryConstraintOpt = {
                 deviceId: { videoId: null, audioId: null },
                 width: { lax: true },
                 height: { lax: true },
                 "": { videoId: null, audioId: null, lax: true },
-            }[e.constraint || ""];
+            } as any)[e.constraint || ""];
         } else if (e.name === "NotFoundError") {
             if (constraints.audio && constraints.video) {
                 // Since we requested both audio and video, there's
@@ -367,7 +376,7 @@ export async function getStream(constraintOpt, { replaceStream, fallback = true 
                 // let's try to only get one of them.
                 try {
                     stream = await getUserMedia(getConstraints({ ...constraintOpt, audioId: false }));
-                } catch (e2) {
+                } catch (e2: any) {
                     if (e2.name !== "NotFoundError") {
                         throw addDetails(e2, e);
                     }
@@ -488,21 +497,21 @@ export function getDisplayMedia(
     });
 }
 
-export function compareLocalDevices(before, after) {
+export function compareLocalDevices(before: any, after: any) {
     const [beforeByKind, afterByKind] = [before, after].map((list) =>
         list
-            .filter((device) => device.kind && device.deviceId)
+            .filter((device: any) => device.kind && device.deviceId)
             .reduce(
-                (result, device) => ({
+                (result: any, device: any) => ({
                     ...result,
                     [device.kind]: { ...result[device.kind], [device.deviceId]: device },
                 }),
                 {}
             )
     );
-    const changesByKind = {};
+    const changesByKind: any = {};
     // find devices removed
-    before.forEach((device) => {
+    before.forEach((device: any) => {
         if (!device.kind || !device.deviceId) return;
         if (!changesByKind[device.kind]) changesByKind[device.kind] = { added: {}, removed: {}, changed: {} };
         if (!afterByKind[device.kind] || !afterByKind[device.kind][device.deviceId]) {
@@ -510,7 +519,7 @@ export function compareLocalDevices(before, after) {
         }
     });
     // find devices either added or changed
-    after.forEach((device) => {
+    after.forEach((device: any) => {
         if (!device.kind || !device.deviceId) return;
         if (!changesByKind[device.kind]) changesByKind[device.kind] = { added: {}, removed: {}, changed: {} };
         if (!beforeByKind[device.kind] || !beforeByKind[device.kind][device.deviceId]) {
@@ -525,10 +534,10 @@ export function compareLocalDevices(before, after) {
     return changesByKind;
 }
 
-export function getUpdatedDevices({ oldDevices, newDevices, currentAudioId, currentVideoId, currentSpeakerId }) {
+export function getUpdatedDevices({ oldDevices, newDevices, currentAudioId, currentVideoId, currentSpeakerId }: any) {
     const changesByKind = compareLocalDevices(oldDevices, newDevices);
-    const changedDevices = {};
-    const addedDevices = {};
+    const changedDevices: any = {};
+    const addedDevices: any = {};
     [
         ["audioinput", currentAudioId],
         ["videoinput", currentVideoId],
@@ -543,7 +552,7 @@ export function getUpdatedDevices({ oldDevices, newDevices, currentAudioId, curr
             if (changes.removed[currentDeviceId]) {
                 changedDevices[kind] = { deviceId: null }; // let browser decide
                 if (kind === "audiooutput") {
-                    const fallbackSpeakerDevice = newDevices.find((d) => d.kind === "audiooutput");
+                    const fallbackSpeakerDevice = newDevices.find((d: any) => d.kind === "audiooutput");
                     changedDevices[kind] = { deviceId: fallbackSpeakerDevice?.deviceId };
                 }
             }

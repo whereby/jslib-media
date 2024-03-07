@@ -9,7 +9,7 @@ const logger = new Logger();
 const browserName = adapter.browserDetails.browser;
 const browserVersion = adapter.browserDetails.version;
 
-export function setCodecPreferenceSDP(sdp, vp9On, redOn) {
+export function setCodecPreferenceSDP(sdp: any, vp9On: any, redOn: any) {
     try {
         const sdpObject = sdpTransform.parse(sdp);
         if (Array.isArray(sdpObject?.media)) {
@@ -19,11 +19,11 @@ export function setCodecPreferenceSDP(sdp, vp9On, redOn) {
                 const rtp = mediaAudio.rtp;
                 for (let i = 0; i < rtp.length; i++) {
                     if (redOn && rtp[i].codec === "red") {
-                        const payloads = mediaAudio.payloads.split(" ");
-                        const pt = payloads.indexOf("" + rtp[i].payload);
+                        const payloads = mediaAudio.payloads?.split(" ");
+                        const pt = payloads?.indexOf("" + rtp[i].payload);
                         if (pt && pt !== -1 && pt >= 0) {
-                            payloads.unshift(payloads.splice(pt, 1)[0]);
-                            mediaAudio.payloads = payloads.join(" ");
+                            payloads?.unshift(payloads.splice(pt, 1)[0]);
+                            mediaAudio.payloads = payloads?.join(" ");
                         }
                     }
                 }
@@ -34,11 +34,11 @@ export function setCodecPreferenceSDP(sdp, vp9On, redOn) {
                 const rtp = mediaVideo.rtp;
                 for (let i = 0; i < rtp.length; i++) {
                     if (vp9On && rtp[i].codec === "VP9") {
-                        const payloads = mediaVideo.payloads.split(" ");
-                        const pt = payloads.indexOf("" + rtp[i].payload);
+                        const payloads = mediaVideo.payloads?.split(" ");
+                        const pt = payloads?.indexOf("" + rtp[i].payload);
                         if (pt && pt !== -1 && pt >= 0) {
-                            payloads.unshift(payloads.splice(pt, 1)[0]);
-                            mediaVideo.payloads = payloads.join(" ");
+                            payloads?.unshift(payloads.splice(pt, 1)[0]);
+                            mediaVideo.payloads = payloads?.join(" ");
                         }
                     }
                 }
@@ -53,7 +53,7 @@ export function setCodecPreferenceSDP(sdp, vp9On, redOn) {
 // Safari does not like VP8-only offers
 // https://bugs.chromium.org/p/webrtc/issues/detail?id=4957
 // This sets the m-line as rejected.
-export function maybeRejectNoH264(sdp) {
+export function maybeRejectNoH264(sdp: any) {
     if (browserName !== "safari") {
         return sdp;
     }
@@ -83,7 +83,7 @@ export function maybeRejectNoH264(sdp) {
 }
 
 // SDP mangling for deprioritizing H264
-export function deprioritizeH264(sdp) {
+export function deprioritizeH264(sdp: any) {
     return SDPUtils.splitSections(sdp)
         .map((section) => {
             // only modify video sections
@@ -100,7 +100,8 @@ export function deprioritizeH264(sdp) {
 
             // reorder and replace
             const mline = SDPUtils.matchPrefix(section, "m=video")[0];
-            const mlinePayloadsSection = /(\s\d+)+$/i.exec(mline)[0];
+            const mlinePayloadsSectionExec = /(\s\d+)+$/i.exec(mline);
+            const mlinePayloadsSection = mlinePayloadsSectionExec ? mlinePayloadsSectionExec[0] : "";
             const mlinePayloadsNonH264 = mlinePayloadsSection
                 .split(" ")
                 .filter((payloadType) => payloadType && !h264payloadTypes.includes(payloadType));
@@ -113,7 +114,7 @@ export function deprioritizeH264(sdp) {
 
 // TODO: currently assumes video, look at track.kind
 // ensures that SSRCs in new description match ssrcs in old description
-export function replaceSSRCs(currentDescription, newDescription) {
+export function replaceSSRCs(currentDescription: any, newDescription: any) {
     let ssrcs = currentDescription.match(/a=ssrc-group:FID (\d+) (\d+)\r\n/);
     let newssrcs = newDescription.match(/a=ssrc-group:FID (\d+) (\d+)\r\n/);
     // Firefox offers dont have a FID ssrc group (yet)
@@ -130,8 +131,11 @@ export function replaceSSRCs(currentDescription, newDescription) {
 // Firefox < 63 (but not Firefox ESR 60) is affected by this:
 // https://bugzilla.mozilla.org/show_bug.cgi?id=1478685
 // filter out the mid rtp header extension
-export function filterMidExtension(sdp) {
-    if (browserName !== "safari" && (browserName !== "firefox" || browserVersion >= 63 || browserVersion === 60)) {
+export function filterMidExtension(sdp: any) {
+    if (
+        browserName !== "safari" &&
+        (browserName !== "firefox" || (browserVersion && browserVersion >= 63) || browserVersion === 60)
+    ) {
         return sdp;
     }
     return (
@@ -151,7 +155,7 @@ export function filterMidExtension(sdp) {
 // clear that FF is to blame:
 // https://bugzilla.mozilla.org/show_bug.cgi?id=1534673
 // Filter out a:msid-semantic header
-export function filterMsidSemantic(sdp) {
+export function filterMsidSemantic(sdp: any) {
     if (browserName !== "firefox") {
         return sdp;
     }
@@ -162,13 +166,13 @@ export function filterMsidSemantic(sdp) {
     );
 }
 
-export function changeMediaDirection(sdp, active) {
+export function changeMediaDirection(sdp: any, active: any) {
     const sections = SDPUtils.splitSections(sdp);
     return (
         sections.shift() +
         sections
             .map((section) => {
-                const currentDirection = SDPUtils.getDirection(section);
+                const currentDirection = SDPUtils.getDirection(section, SDPUtils.getKind(section));
                 return section.replace("a=" + currentDirection, "a=" + (active ? "recvonly" : "inactive"));
             })
             .join("")
@@ -176,13 +180,13 @@ export function changeMediaDirection(sdp, active) {
 }
 
 // add SDP RTP header extension mapping
-export function addExtMap(sdp, extmapUri, modifyAudio = false, modifyVideo = false) {
+export function addExtMap(sdp: any, extmapUri: any, modifyAudio: any = false, modifyVideo: any = false) {
     try {
         const sdpObj = sdpTransform.parse(sdp);
 
         // in case session level extmaps we skip modification
         // TODO: handle it more properly
-        if (sdpObj?.ext?.length > 0) {
+        if (sdpObj?.ext?.length && sdpObj.ext.length > 0) {
             return sdp;
         }
 
@@ -192,7 +196,7 @@ export function addExtMap(sdp, extmapUri, modifyAudio = false, modifyVideo = fal
         const allHeaderExtensions = sdpObj?.media.flatMap((section) => section.ext || []);
         const extmapId =
             allHeaderExtensions.find((ext) => ext.uri === extmapUri)?.value ||
-            [...new Set([0, 15, ...allHeaderExtensions.map((ext) => ext.value)])]
+            [...new Set([0, 15, ...allHeaderExtensions.map((ext: any) => ext.value)])]
                 .sort((a, b) => a - b)
                 .find((n, i, arr) => n + 1 !== arr[i + 1]) + 1;
 
@@ -216,7 +220,7 @@ export function addExtMap(sdp, extmapUri, modifyAudio = false, modifyVideo = fal
 
 // Add SDP RTP header extension mapping to abs-capture-time
 // a=extmap:9 http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time
-export function addAbsCaptureTimeExtMap(sdp) {
+export function addAbsCaptureTimeExtMap(sdp: any) {
     const absCaptureTimeUri = "http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time";
     return addExtMap(sdp, absCaptureTimeUri, true, true);
 }

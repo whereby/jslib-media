@@ -37,17 +37,25 @@ import * as scriptFunctions from "./VegaMicAnalyserTools";
 
 const logger = new Logger();
 
-export default function createMicAnalyser({ micTrack, params, onScoreUpdated }) {
+export default function createMicAnalyser({
+    micTrack,
+    params,
+    onScoreUpdated,
+}: {
+    micTrack: MediaStreamTrack;
+    params?: any;
+    onScoreUpdated: (data: any) => void;
+}) {
     // todo: might need to reuse existing in PWA
     const audioCtx = new AudioContext();
 
-    let analyser = null;
+    let analyser: any = null;
 
     // recreates source (connects track to analyser)
-    let source = null;
-    let lastTrack = null;
+    let source: any = null;
+    let lastTrack: MediaStreamTrack | null = null;
     let lastTrackWasOurs = false;
-    const setTrack = async (track) => {
+    const setTrack = async (track: MediaStreamTrack | null) => {
         // stop last track if get by us
         if (lastTrack && lastTrackWasOurs) {
             lastTrack.stop();
@@ -79,8 +87,8 @@ export default function createMicAnalyser({ micTrack, params, onScoreUpdated }) 
     };
 
     // updates analyzer params and restarts sampler
-    let samplerInterval;
-    const setParams = (newParams) => {
+    let samplerInterval: any;
+    const setParams = (newParams: any) => {
         clearInterval(samplerInterval);
 
         params = { ...defaultParams, ...newParams };
@@ -97,7 +105,7 @@ export default function createMicAnalyser({ micTrack, params, onScoreUpdated }) 
         }
 
         const bins = new Uint8Array(analyser.frequencyBinCount);
-        const scores = [];
+        const scores: any = [];
 
         analyser.minDecibels = params.minDecibels;
         analyser.maxDecibels = params.maxDecibels;
@@ -131,12 +139,15 @@ export default function createMicAnalyser({ micTrack, params, onScoreUpdated }) 
 
             let score = 0;
             if (calcScore) {
-                const processedBands = params.bands.map((range) => {
-                    const bands = range.map((index) => binMap(bins[index] / 255, index));
+                const processedBands = params.bands.map((range: any) => {
+                    const bands = range.map((index: number) => binMap(bins[index] / 255, index));
                     return {
-                        avg: bands.reduce((sum, current) => sum + current, 0) / range.length,
-                        min: bands.reduce((min, current) => Math.min(min, current / 255), Number.MAX_VALUE),
-                        max: bands.reduce((max, current) => Math.max(max, current / 255), 0),
+                        avg: bands.reduce((sum: number, current: number) => sum + current, 0) / range.length,
+                        min: bands.reduce(
+                            (min: number, current: number) => Math.min(min, current / 255),
+                            Number.MAX_VALUE
+                        ),
+                        max: bands.reduce((max: number, current: number) => Math.max(max, current / 255), 0),
                     };
                 });
                 score = calcScore(processedBands) || 0;
@@ -150,8 +161,8 @@ export default function createMicAnalyser({ micTrack, params, onScoreUpdated }) 
             reportRateCounter++;
             if (reportRateCounter >= params.reportRate) {
                 reportRateCounter = 0;
-                const max = scores.reduce((a, b) => Math.max(a, b), 0);
-                const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+                const max = scores.reduce((a: number, b: number) => Math.max(a, b), 0);
+                const avg = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
                 const out = getOutValue(score, avg, max, scores);
                 onScoreUpdated({ bins, score, max, avg, out });
             }

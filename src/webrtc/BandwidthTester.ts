@@ -8,7 +8,27 @@ import Logger from "../utils/Logger";
 const logger = new Logger();
 
 export default class BandwidthTester extends EventEmitter {
-    constructor({ features } = {}) {
+    closed: boolean;
+    _features: any;
+    _vegaConnection: any;
+    _mediasoupDevice: any;
+    _routerRtpCapabilities: any;
+    _sendTransport: any;
+    _receiveTransport: any;
+    _producer: any;
+    _consumers: Map<any, any>;
+    _startTime: any;
+    _connectTime: any;
+    _mediaEstablishedTime: any;
+    _runTime: any;
+    _endTime: any;
+    _timeout: any;
+    _canvas: any;
+    _drawInterval: any;
+    _resultTimeout: any;
+    _reportTimeout: any;
+
+    constructor({ features }: { features?: any } = {}) {
         super();
 
         this.closed = false;
@@ -66,7 +86,7 @@ export default class BandwidthTester extends EventEmitter {
         this._vegaConnection = new VegaConnection(wsUrl, "whereby-sfu#bw-test-v1");
         this._vegaConnection.on("open", () => this._start());
         this._vegaConnection.on("close", () => this.close());
-        this._vegaConnection.on("message", (message) => this._onMessage(message));
+        this._vegaConnection.on("message", (message: any) => this._onMessage(message));
 
         // If we don't get a response within 5 seconds, we close the test
         this._startTimeout();
@@ -180,7 +200,7 @@ export default class BandwidthTester extends EventEmitter {
         }
     }
 
-    async _createTransport(send) {
+    async _createTransport(send: any) {
         const creator = send ? "createSendTransport" : "createRecvTransport";
 
         const transportOptions = await this._vegaConnection.request("createTransport", {
@@ -195,7 +215,7 @@ export default class BandwidthTester extends EventEmitter {
 
         const transport = this._mediasoupDevice[creator](transportOptions);
 
-        transport.on("connect", ({ dtlsParameters }, callback) => {
+        transport.on("connect", ({ dtlsParameters }: { dtlsParameters: any }, callback: any) => {
             this._vegaConnection.message("connectTransport", {
                 transportId: transport.id,
                 dtlsParameters,
@@ -205,7 +225,7 @@ export default class BandwidthTester extends EventEmitter {
         });
 
         if (send) {
-            transport.on("produce", async ({ kind, rtpParameters, appData }, callback, errback) => {
+            transport.on("produce", async ({ kind, rtpParameters, appData }: any, callback: any, errback: any) => {
                 try {
                     const { paused } = appData;
 
@@ -334,7 +354,7 @@ export default class BandwidthTester extends EventEmitter {
         });
     }
 
-    async _onMessage(message) {
+    async _onMessage(message: any) {
         const { method, data } = message;
         return Promise.resolve()
             .then(() => {
@@ -353,7 +373,7 @@ export default class BandwidthTester extends EventEmitter {
             });
     }
 
-    async _onConsumerReady(options) {
+    async _onConsumerReady(options: any) {
         const consumer = await this._receiveTransport.consume(options);
 
         consumer.once("close", () => {
@@ -367,7 +387,7 @@ export default class BandwidthTester extends EventEmitter {
         });
     }
 
-    _onConsumerClosed({ consumerId }) {
+    _onConsumerClosed({ consumerId }: { consumerId: any }) {
         logger.info("_onConsumerClosed()");
 
         const consumer = this._consumers.get(consumerId);
@@ -390,7 +410,7 @@ export default class BandwidthTester extends EventEmitter {
         let outboundPackets = 0;
         let remotePacketsLost = 0;
 
-        localSendStats.forEach((localSendStat) => {
+        localSendStats.forEach((localSendStat: any) => {
             if (localSendStat.type === "outbound-rtp" && typeof localSendStat.packetsSent === "number") {
                 outboundPackets += localSendStat.packetsSent;
             } else if (localSendStat.type === "remote-inbound-rtp" && typeof localSendStat.packetsLost === "number") {
@@ -401,7 +421,7 @@ export default class BandwidthTester extends EventEmitter {
         let inboundPackets = 0;
         let packetsLost = 0;
 
-        localRecvStats.forEach((localRecvStat) => {
+        localRecvStats.forEach((localRecvStat: any) => {
             if (
                 localRecvStat.type === "inbound-rtp" &&
                 typeof localRecvStat.packetsReceived === "number" &&

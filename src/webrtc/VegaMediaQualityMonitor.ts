@@ -16,6 +16,10 @@ const WARNING_SCORE = 9;
 const CRITICAL_SCORE = 7;
 
 export default class VegaMediaQualityMonitor extends EventEmitter {
+    _clients: any;
+    _producers: any;
+    _intervalHandle: any;
+
     constructor() {
         super();
         this._clients = {};
@@ -38,7 +42,7 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
         }, MONITOR_INTERVAL);
     }
 
-    _evaluateClient(clientId, producers) {
+    _evaluateClient(clientId: string, producers: any) {
         if (!this._clients[clientId]) {
             this._clients[clientId] = {
                 audio: { currentQuality: MEDIA_QUALITY.ok, trend: [] },
@@ -48,22 +52,22 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
 
         this._evaluateProducer(
             clientId,
-            Object.values(producers).filter((p) => p.kind === "audio"),
+            Object.values(producers).filter((p: any) => p.kind === "audio"),
             "audio"
         );
         this._evaluateProducer(
             clientId,
-            Object.values(producers).filter((p) => p.kind === "video"),
+            Object.values(producers).filter((p: any) => p.kind === "video"),
             "video"
         );
     }
 
-    _evaluateProducer(clientId, producers, kind) {
+    _evaluateProducer(clientId: string, producers: any, kind: string) {
         if (producers.length === 0) {
             return;
         }
 
-        const avgScore = producers.reduce((prev, curr) => prev + curr.score, 0) / producers.length;
+        const avgScore = producers.reduce((prev: any, curr: any) => prev + curr.score, 0) / producers.length;
         const newQuality = this._evaluateScore(avgScore);
         const qualityChanged = this._updateTrend(newQuality, this._clients[clientId][kind]);
         if (qualityChanged) {
@@ -75,13 +79,13 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
         }
     }
 
-    _updateTrend(newQuality, state) {
+    _updateTrend(newQuality: any, state: any) {
         state.trend.push(newQuality);
         if (state.trend.length > TREND_HORIZON) {
             state.trend.shift();
         }
 
-        if (newQuality !== state.currentQuality && state.trend.every((t) => t !== state.currentQuality)) {
+        if (newQuality !== state.currentQuality && state.trend.every((t: any) => t !== state.currentQuality)) {
             state.currentQuality = newQuality;
             return true;
         } else {
@@ -89,7 +93,7 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
         }
     }
 
-    addProducer(clientId, producerId) {
+    addProducer(clientId: string, producerId: string) {
         if (!clientId || !producerId || !(typeof clientId === "string" && typeof producerId === "string")) {
             logger.warn("Missing clientId or producerId");
             return;
@@ -102,7 +106,7 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
         this._producers[clientId][producerId] = {};
     }
 
-    removeProducer(clientId, producerId) {
+    removeProducer(clientId: string, producerId: string) {
         delete this._producers[clientId][producerId];
 
         if (Object.keys(this._producers[clientId]).length === 0) {
@@ -110,7 +114,7 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
         }
     }
 
-    addConsumer(clientId, consumerId) {
+    addConsumer(clientId: string, consumerId: string) {
         if (!clientId || !consumerId) {
             logger.warn("Missing clientId or consumerId");
             return;
@@ -123,7 +127,7 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
         this._producers[clientId][consumerId] = {};
     }
 
-    removeConsumer(clientId, consumerId) {
+    removeConsumer(clientId: string, consumerId: string) {
         delete this._producers[clientId][consumerId];
 
         if (Object.keys(this._producers[clientId]).length === 0) {
@@ -131,7 +135,7 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
         }
     }
 
-    addProducerScore(clientId, producerId, kind, score) {
+    addProducerScore(clientId: string, producerId: string, kind: string, score: any) {
         if (
             !Array.isArray(score) ||
             score.length === 0 ||
@@ -143,7 +147,7 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
         this._producers[clientId][producerId] = { kind, score: this._calcAvgProducerScore(score.map((s) => s.score)) };
     }
 
-    addConsumerScore(clientId, consumerId, kind, score) {
+    addConsumerScore(clientId: string, consumerId: string, kind: string, score: any) {
         if (!score || !score.hasOwnProperty("producerScores") || !Array.isArray(score.producerScores)) {
             logger.warn("Unexpected consumer score format");
             return;
@@ -151,7 +155,7 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
         this._producers[clientId][consumerId] = { kind, score: this._calcAvgProducerScore(score.producerScores) };
     }
 
-    _evaluateScore(score) {
+    _evaluateScore(score: number) {
         if (score <= WARNING_SCORE && score > CRITICAL_SCORE) {
             return MEDIA_QUALITY.warning;
         } else if (score <= CRITICAL_SCORE && score > 0) {
@@ -161,7 +165,7 @@ export default class VegaMediaQualityMonitor extends EventEmitter {
         }
     }
 
-    _calcAvgProducerScore(scores) {
+    _calcAvgProducerScore(scores: any) {
         try {
             if (!Array.isArray(scores) || scores.length === 0) {
                 return 0;

@@ -5,7 +5,12 @@ import Logger from "../utils/Logger";
 const logger = new Logger();
 
 export default class VegaConnection extends EventEmitter {
-    constructor(wsUrl, protocol = "whereby-sfu#v4") {
+    wsUrl: string;
+    protocol: string;
+    socket: WebSocket | null = null;
+    sents: Map<any, any>;
+
+    constructor(wsUrl: string, protocol = "whereby-sfu#v4") {
         super();
 
         this.wsUrl = wsUrl;
@@ -25,6 +30,8 @@ export default class VegaConnection extends EventEmitter {
     }
 
     _tearDown() {
+        if (this.socket === null) return;
+
         this.socket.onopen = null;
         this.socket.onmessage = null;
         this.socket.onclose = null;
@@ -46,7 +53,7 @@ export default class VegaConnection extends EventEmitter {
         this.emit("open");
     }
 
-    _onMessage(event) {
+    _onMessage(event: any) {
         const socketMessage = SfuV2Parser.parse(event.data);
 
         logger.info("Received message", socketMessage);
@@ -64,11 +71,11 @@ export default class VegaConnection extends EventEmitter {
         this._tearDown();
     }
 
-    _onError(error) {
+    _onError(error: any) {
         logger.info("Error", error);
     }
 
-    _handleResponse(socketMessage) {
+    _handleResponse(socketMessage: any) {
         const sent = this.sents.get(socketMessage.id);
 
         if (socketMessage.ok) {
@@ -79,18 +86,20 @@ export default class VegaConnection extends EventEmitter {
         }
     }
 
-    send(message) {
+    send(message: any) {
         try {
-            this.socket.send(JSON.stringify(message));
+            if (this.socket) {
+                this.socket.send(JSON.stringify(message));
+            }
         } catch (error) {}
     }
 
-    message(method, data = {}) {
+    message(method: any, data: any = {}) {
         const message = SfuV2Parser.createMessage(method, data);
         this.send(message);
     }
 
-    request(method, data = {}, timeout = 1500 * (15 + 0.1 * this.sents.size)) {
+    request(method: any, data: any = {}, timeout: number = 1500 * (15 + 0.1 * this.sents.size)) {
         const request = SfuV2Parser.createRequest(method, data);
 
         this.send(request);
@@ -99,13 +108,13 @@ export default class VegaConnection extends EventEmitter {
             const sent = {
                 id: request.id,
                 method: request.method,
-                resolve: (data2) => {
+                resolve: (data2: any) => {
                     if (!this.sents.delete(request.id)) return;
 
                     clearTimeout(sent.timer);
                     pResolve(data2);
                 },
-                reject: (error) => {
+                reject: (error: any) => {
                     if (!this.sents.delete(request.id)) return;
 
                     clearTimeout(sent.timer);

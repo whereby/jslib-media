@@ -5,7 +5,7 @@ const adapter = adapterRaw.default ?? adapterRaw;
 const isSafari = adapter.browserDetails.browser === "safari";
 
 // Expects format 640x360@25, returns [width, height, fps]
-const parseResolution = (res) => res.split(/[^\d]/g).map((n) => parseInt(n, 10));
+const parseResolution = (res: any) => res.split(/[^\d]/g).map((n: any) => parseInt(n, 10));
 
 /**
  * Low level constraints helper, creates the actual object used for GUM constraints
@@ -20,9 +20,19 @@ export function getMediaConstraints({
     resolution,
     simulcast,
     widescreen,
+}: {
+    disableAEC?: boolean;
+    disableAGC?: boolean;
+    hd?: boolean;
+    lax?: boolean;
+    lowDataMode?: boolean;
+    preferredDeviceIds: { audioId: any; videoId: any };
+    resolution?: any;
+    simulcast?: boolean;
+    widescreen?: boolean;
 }) {
-    let HIGH_HEIGHT = 480;
-    let LOW_HEIGHT = 240;
+    let HIGH_HEIGHT: any = 480;
+    let LOW_HEIGHT: any = 240;
 
     if (hd) {
         // respect user choice, but default to HD for pro, and SD for free
@@ -37,7 +47,7 @@ export function getMediaConstraints({
         }
     }
 
-    const constraints = {
+    const constraints: any = {
         audio: { ...(preferredDeviceIds.audioId && { deviceId: preferredDeviceIds.audioId }) },
         video: {
             ...(preferredDeviceIds.videoId ? { deviceId: preferredDeviceIds.videoId } : { facingMode: "user" }),
@@ -48,8 +58,8 @@ export function getMediaConstraints({
         },
     };
     if (lax) {
-        if (!constraints.audio.deviceId) constraints.audio = true;
-        delete constraints.video.facingMode;
+        if (!constraints.audio?.deviceId) constraints.audio = true;
+        delete constraints.video?.facingMode;
         return constraints;
     }
 
@@ -72,11 +82,11 @@ export function getMediaConstraints({
 /**
  * High level mediaConstraints helper
  */
-export default function getConstraints({ devices, videoId, audioId, options, type = "ideal" }) {
-    const audioDevices = devices.filter((d) => d.kind === "audioinput");
-    const videoDevices = devices.filter((d) => d.kind === "videoinput");
-    const useDefaultAudio = !audioId || !audioDevices.some((d) => d.deviceId === audioId);
-    const useDefaultVideo = !videoId || !videoDevices.some((d) => d.deviceId === videoId);
+export default function getConstraints({ devices, videoId, audioId, options, type = "ideal" }: any) {
+    const audioDevices = devices.filter((d: any) => d.kind === "audioinput");
+    const videoDevices = devices.filter((d: any) => d.kind === "videoinput");
+    const useDefaultAudio = !audioId || !audioDevices.some((d: any) => d.deviceId === audioId);
+    const useDefaultVideo = !videoId || !videoDevices.some((d: any) => d.deviceId === videoId);
     const constraints = getMediaConstraints({
         preferredDeviceIds: {
             audioId: useDefaultAudio ? null : { [type]: audioId },

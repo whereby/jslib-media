@@ -2,7 +2,7 @@
 // inlined because it's import caused errors in browser-sdk when running tests
 const word = "[a-fA-F\\d:]";
 
-const boundry = (options: { includeBoundaries: boolean }) =>
+const boundry = (options: { includeBoundaries?: boolean }) =>
     options && options.includeBoundaries ? `(?:(?<=\\s|^)(?=${word})|(?<=${word})(?=\\s|$))` : "";
 
 const v4 = "(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)){3}";
@@ -30,7 +30,7 @@ const v46Exact = new RegExp(`(?:^${v4}$)|(?:^${v6}$)`);
 const v4exact = new RegExp(`^${v4}$`);
 const v6exact = new RegExp(`^${v6}$`);
 
-const ipRegex = (options: { exact: boolean; includeBoundaries: boolean }) =>
+const ipRegex = (options: { exact: boolean; includeBoundaries?: boolean }) =>
     options && options.exact
         ? v46Exact
         : new RegExp(
@@ -38,9 +38,9 @@ const ipRegex = (options: { exact: boolean; includeBoundaries: boolean }) =>
               "g"
           );
 
-ipRegex.v4 = (options: { exact: boolean; includeBoundaries: boolean }) =>
+ipRegex.v4 = (options: { exact: boolean; includeBoundaries?: boolean }) =>
     options && options.exact ? v4exact : new RegExp(`${boundry(options)}${v4}${boundry(options)}`, "g");
-ipRegex.v6 = (options: { exact: boolean; includeBoundaries: boolean }) =>
+ipRegex.v6 = (options: { exact: boolean; includeBoundaries?: boolean }) =>
     options && options.exact ? v6exact : new RegExp(`${boundry(options)}${v6}${boundry(options)}`, "g");
 
 export default ipRegex;
