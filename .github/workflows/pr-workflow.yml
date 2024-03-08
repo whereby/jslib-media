@@ -63,5 +63,8 @@ jobs:
             - name: Install
               run: yarn install --frozen-lockfile
 
+            - name: Build
+              run: yarn build
+
             - name: Create Release
               run: yarn run auto shipit

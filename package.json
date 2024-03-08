@@ -13,7 +13,7 @@
     "url": "https://github.com/whereby/jslib-media/issues"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc",
     "lint": "eslint src tests",
     "test": "npm run lint && npm run test:unit",
     "test:unit": "jest",
