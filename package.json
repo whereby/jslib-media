@@ -13,6 +13,7 @@
     "url": "https://github.com/whereby/jslib-media/issues"
   },
   "scripts": {
+    "build": "tsc",
     "lint": "eslint src tests",
     "test": "npm run lint && npm run test:unit",
     "test:unit": "jest",
@@ -44,6 +45,7 @@
     "@types/uuid": "^9.0.8",
     "@types/uuid-validate": "^0.0.3",
     "@typescript-eslint/eslint-plugin": "^7.1.1",
+    "@typescript-eslint/parser": "^7.1.1",
     "auto": "^11.1.1",
     "babel-jest": "^29.7.0",
     "eslint": "^8.56.0",

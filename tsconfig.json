@@ -16,7 +16,6 @@
         "lib": ["dom", "dom.iterable", "esnext", "es2015.collection", "es2015.iterable"],
         "module": "esnext",
         "moduleResolution": "node",
-        "noEmit": true,
         "noFallthroughCasesInSwitch": true,
         "resolveJsonModule": true,
         "skipLibCheck": true,

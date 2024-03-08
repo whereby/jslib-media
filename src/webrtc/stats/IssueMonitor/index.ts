@@ -630,8 +630,8 @@ function onUpdatedStats(statsByView: any, clients: any) {
         }
     });
 
-    subscriptions.forEach(
-        (subscription) => subscription.onUpdatedIssues?.(issuesAndMetricsByView, statsByView, clients)
+    subscriptions.forEach((subscription) =>
+        subscription.onUpdatedIssues?.(issuesAndMetricsByView, statsByView, clients)
     );
 }
 
