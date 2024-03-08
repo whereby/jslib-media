@@ -1,11 +1,11 @@
 import { startPerformanceMonitor } from "../../../src/webrtc/stats/PerformanceMonitor";
 
 describe("PerformanceMonitor", () => {
-    let onMetricsUpdated;
+    let onMetricsUpdated: any;
     let onTerminated;
     let isHidden;
-    let pm;
-    let hidden;
+    let pm: any;
+    let hidden: any;
 
     beforeAll(() => {
         jest.useFakeTimers();

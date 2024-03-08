@@ -2,23 +2,23 @@ import { subscribeIssues } from "../../../src/webrtc/stats/IssueMonitor";
 import { setClientProvider } from "../../../src/webrtc/stats/StatsMonitor";
 import { setPeerConnectionsForTests } from "../../../src/webrtc/stats/StatsMonitor/peerConnectionTracker";
 
-function createMockPeerConnection(clients) {
+function createMockPeerConnection(clients: any) {
     return {
         getStats() {
             return new Map(
                 clients
-                    .flatMap((client) => [
+                    .flatMap((client: any) => [
                         client.audio.enabled && { ...client.audio.stats, timestamp: Date.now() },
                         client.video.enabled && { ...client.video.stats, timestamp: Date.now() },
                     ])
                     .filter(Boolean)
-                    .map((stats) => [stats.id, { ...stats }])
+                    .map((stats: any) => [stats.id, { ...stats }])
             );
         },
     };
 }
 
-function createMockClient(id, isLocal) {
+function createMockClient(id: any, isLocal: any) {
     return {
         id,
         isLocalClient: !!isLocal,
@@ -57,10 +57,10 @@ function createMockClient(id, isLocal) {
 }
 
 describe("IssueMonitor", () => {
-    let stopSubscription;
-    let localCam;
-    let remoteCam1;
-    let remoteCam2;
+    let stopSubscription: any;
+    let localCam: any;
+    let remoteCam1: any;
+    let remoteCam2: any;
 
     beforeAll(() => {
         jest.useFakeTimers();
@@ -70,7 +70,7 @@ describe("IssueMonitor", () => {
         jest.useRealTimers();
     });
 
-    let onUpdatedIssues;
+    let onUpdatedIssues: any;
 
     const statsIntervalTick = async () => {
         jest.advanceTimersByTime(2000);
@@ -78,13 +78,13 @@ describe("IssueMonitor", () => {
         await Promise.all([Promise.resolve(true)]);
     };
 
-    const expectAggregatedMetrics = (metrics, callNumber) => {
+    const expectAggregatedMetrics = (metrics: any, callNumber?: number) => {
         const call = onUpdatedIssues.mock.calls[callNumber || 0];
         const arg = call[0];
         expect(arg).toMatchObject({ aggregated: { metrics } });
     };
 
-    const expectAggregatedIssues = (issues, callNumber) => {
+    const expectAggregatedIssues = (issues: any, callNumber?: number) => {
         const call = onUpdatedIssues.mock.calls[callNumber || 0];
         const arg = call[0];
         expect(arg).toMatchObject({ aggregated: { issues } });
