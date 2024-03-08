@@ -131,7 +131,7 @@ export function getDeviceData({ audioTrack, videoTrack, devices, stoppedVideoTra
 /**
  * Stops all tracks in a media stream.
  */
-export function stopStreamTracks(stream: MediaStream, only: "audio" | "video") {
+export function stopStreamTracks(stream: MediaStream, only?: "audio" | "video" | false) {
     if (!only || only === "audio") stream.getAudioTracks().forEach((t: MediaStreamTrack) => t.stop());
     if (!only || only === "video") stream.getVideoTracks().forEach((t: MediaStreamTrack) => t.stop());
 }
@@ -139,7 +139,7 @@ export function stopStreamTracks(stream: MediaStream, only: "audio" | "video") {
 /**
  * Replaces tracks in stream with tracks from newStream
  */
-export function replaceTracksInStream(stream: MediaStream, newStream: MediaStream, only: "audio" | "video") {
+export function replaceTracksInStream(stream: MediaStream, newStream: MediaStream, only: "audio" | "video" | false) {
     // adds before remove to not make stream.ended fire
     // https://github.com/w3c/mediacapture-main/issues/519
     const replacedTracks = [];
@@ -336,8 +336,7 @@ export async function getStream(constraintOpt: any, { replaceStream, fallback = 
     let retryConstraintOpt: any;
     let stream: MediaStream | null = null;
 
-    const only =
-        (constraintOpt.audioId === false && "video") || (constraintOpt.videoId === false && "audio") || "audio";
+    const only = (constraintOpt.audioId === false && "video") || (constraintOpt.videoId === false && "audio");
     // Mobile can't open two devices at once. Firefox also can't open two audio devices at once.
     // It looks nicer when we don't stop tracks while getting new streams, so we try to not do it
     // unless required.
@@ -411,7 +410,9 @@ export async function getStream(constraintOpt: any, { replaceStream, fallback = 
                 }
                 // Message often hints at which was the problem, let's use that
                 const errMsg = ("" + e).toLowerCase();
-                const problemWith = { audio: "audioId", video: "videoId" }[/(video|audio)/.exec(errMsg)?.[0] || only];
+                const problemWith = { audio: "audioId", video: "videoId" }[
+                    /(video|audio)/.exec(errMsg)?.[0] || only || ""
+                ];
                 if (!stream && problemWith) {
                     try {
                         stream = await getUserMedia(getConstraints({ ...constraintOpt, [problemWith]: null }));
@@ -440,7 +441,7 @@ export async function getStream(constraintOpt: any, { replaceStream, fallback = 
             ...constraintOpt,
             ...retryConstraintOpt,
             options: { ...constraintOpt.options, lax: retryConstraintOpt.lax },
-            ...{ audio: { videoId: false }, video: { audioId: false } }[only],
+            ...{ audio: { videoId: false }, video: { audioId: false } }[only || "audio"],
         });
         try {
             stream = await getUserMedia(newConstraints);

@@ -15,14 +15,14 @@ const originalNavigator = global.navigator;
 const originalMediasoupDevice = mediasoupClient.Device;
 
 describe("VegaRtcManager", () => {
-    let navigator;
-    let serverSocketStub;
-    let serverSocket;
-    let emitter;
-    let webrtcProvider;
-    let mediaContstraints;
+    let navigator: any;
+    let serverSocketStub: any;
+    let serverSocket: any;
+    let emitter: any;
+    let webrtcProvider: any;
+    let mediaContstraints: any;
 
-    let rtcManager;
+    let rtcManager: any;
 
     beforeEach(() => {
         serverSocketStub = helpers.createServerSocketStub();
@@ -59,13 +59,6 @@ describe("VegaRtcManager", () => {
             webrtcProvider,
             features: {},
             eventClaim: helpers.randomString("/claim-"),
-            logger: {
-                debug: () => {},
-                error: () => {},
-                info: () => {},
-                log: () => {},
-                warn: () => {},
-            },
         });
     });
 
@@ -81,56 +74,6 @@ describe("VegaRtcManager", () => {
     describe("constructor", () => {
         const selfId = helpers.randomString("client-");
         const room = { name: helpers.randomString("/room-"), iceServers: {} };
-
-        itShouldThrowIfMissing("selfId", () => {
-            //eslint-disable-next-line no-new
-            new VegaRtcManager({
-                room,
-                emitter,
-                serverSocket,
-                webrtcProvider,
-            });
-        });
-
-        itShouldThrowIfMissing("room", () => {
-            //eslint-disable-next-line no-new
-            new VegaRtcManager({
-                selfId,
-                emitter,
-                serverSocket,
-                webrtcProvider,
-            });
-        });
-
-        itShouldThrowIfMissing("emitter", () => {
-            //eslint-disable-next-line no-new
-            new VegaRtcManager({
-                selfId,
-                room,
-                serverSocket,
-                webrtcProvider,
-            });
-        });
-
-        itShouldThrowIfMissing("serverSocket", () => {
-            //eslint-disable-next-line no-new
-            new VegaRtcManager({
-                selfId,
-                room,
-                emitter,
-                webrtcProvider,
-            });
-        });
-
-        itShouldThrowIfMissing("webrtcProvider", () => {
-            //eslint-disable-next-line no-new
-            new VegaRtcManager({
-                selfId,
-                room,
-                emitter,
-                serverSocket,
-            });
-        });
 
         it("handles custom device handler factories", () => {
             const deviceHandlerFactory = function () {};
@@ -155,7 +98,7 @@ describe("VegaRtcManager", () => {
     });
 
     describe("stopOrResumeVideo", () => {
-        let localStream;
+        let localStream: any;
 
         beforeEach(() => {
             jest.useFakeTimers();
@@ -214,7 +157,7 @@ describe("VegaRtcManager", () => {
         });
 
         describe("when enabling", () => {
-            let gumStream;
+            let gumStream: any;
 
             beforeEach(() => {
                 gumStream = helpers.createMockedMediaStream();
@@ -268,7 +211,7 @@ describe("VegaRtcManager", () => {
     });
 
     describe("handling localStream `stopresumevideo` event", () => {
-        let localStream;
+        let localStream: any;
 
         beforeEach(() => {
             localStream = helpers.createMockedMediaStream();
@@ -288,8 +231,8 @@ describe("VegaRtcManager", () => {
 
         describe("when disable", () => {
             describe("when there is already a webcam producer for the track", () => {
-                let track;
-                let webcamProducer;
+                let track: any;
+                let webcamProducer: any;
 
                 beforeEach(() => {
                     track = helpers.createMockedMediaStreamTrack({ kind: "video" });

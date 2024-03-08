@@ -12,9 +12,9 @@ import { v4 as uuidv4 } from "uuid";
 const originalMediasoupDevice = mediasoupClient.Device;
 
 describe("RtcManagerDispatcher", () => {
-    let emitter;
-    let serverSocketStub;
-    const features = {};
+    let emitter: any;
+    let serverSocketStub: any;
+    const features: any = {};
 
     beforeEach(() => {
         emitter = new EventEmitter();
@@ -38,11 +38,19 @@ describe("RtcManagerDispatcher", () => {
         // selfId = helpers.randomString("client-"),
         selfId = uuidv4(),
         name = helpers.randomString("/room-"),
-        sfuServer,
-        error,
+        sfuServer = null,
+        error = null,
+    }: {
+        selfId?: string;
+        name?: string;
+        sfuServer?: any;
+        error?: any;
     } = {}) {
         let emitted;
-        emitter.on(CONNECTION_STATUS.EVENTS.RTC_MANAGER_CREATED, ({ rtcManager }) => (emitted = rtcManager));
+        emitter.on(
+            CONNECTION_STATUS.EVENTS.RTC_MANAGER_CREATED,
+            ({ rtcManager }: { rtcManager: any }) => (emitted = rtcManager)
+        );
         serverSocketStub.emitFromServer(PROTOCOL_RESPONSES.ROOM_JOINED, {
             selfId,
             room: { name, sfuServer, iceServers: {} },
@@ -80,8 +88,8 @@ describe("RtcManagerDispatcher", () => {
     });
 
     it("replaces RTC manager when switching room mode", () => {
-        const messages = [];
-        emitter.on(CONNECTION_STATUS.EVENTS.RTC_MANAGER_CREATED, ({ rtcManager }) =>
+        const messages: any[] = [];
+        emitter.on(CONNECTION_STATUS.EVENTS.RTC_MANAGER_CREATED, ({ rtcManager }: { rtcManager: any }) =>
             messages.push({ create: rtcManager })
         );
         emitter.on(CONNECTION_STATUS.EVENTS.RTC_MANAGER_DESTROYED, () => messages.push({ destroy: true }));

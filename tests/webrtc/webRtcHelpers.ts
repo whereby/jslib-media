@@ -2,9 +2,9 @@ import ServerSocket from "../../src/utils/ServerSocket";
 jest.mock("../../src/utils/ServerSocket");
 
 export function createServerSocketStub() {
-    const listeners = {};
+    const listeners: any = {};
 
-    const socket = new ServerSocket();
+    const socket = new ServerSocket("");
 
     socket.on = jest.fn((eventName, handler) => {
         if (!listeners[eventName]) {
@@ -14,7 +14,7 @@ export function createServerSocketStub() {
         listeners[eventName].push(handler);
 
         return () => {
-            listeners[eventName] = listeners[eventName].filter((existingHandler) => {
+            listeners[eventName] = listeners[eventName].filter((existingHandler: any) => {
                 return existingHandler !== handler;
             });
         };
@@ -34,8 +34,8 @@ export function createServerSocketStub() {
     return {
         socket,
 
-        emitFromServer(eventName, data) {
-            listeners[eventName].forEach((func) => {
+        emitFromServer(eventName: string, data: any) {
+            listeners[eventName].forEach((func: any) => {
                 func(data);
             });
         },
@@ -44,7 +44,7 @@ export function createServerSocketStub() {
             return listeners;
         },
 
-        getListeners(eventName) {
+        getListeners(eventName: string) {
             return listeners[eventName] || [];
         },
     };
@@ -92,9 +92,9 @@ export function randomString(prefix = "") {
     return prefix + Math.floor(Math.random() * 1000000000000).toString(36);
 }
 
-export function createIceServersConfig({ iceServerUrls } = {}) {
+export function createIceServersConfig({ iceServerUrls }: { iceServerUrls?: any } = {}) {
     const urls = iceServerUrls || [`turn:server-${randomString()}:443?transport=udp`];
-    return urls.map((url) => ({
+    return urls.map((url: any) => ({
         url,
         urls: [url],
         username: randomString("user-"),
@@ -102,7 +102,7 @@ export function createIceServersConfig({ iceServerUrls } = {}) {
     }));
 }
 
-export function createMockedMediaStreamTrack({ id = randomString("track"), kind }) {
+export function createMockedMediaStreamTrack({ id = randomString("track"), kind }: { id?: string; kind: string }) {
     const raiseNotImplementedException = () => {
         throw new Error("Not Implemented function in mock");
     };
@@ -134,7 +134,7 @@ export function createMockedMediaStreamTrack({ id = randomString("track"), kind 
     return Object.assign(new EventTarget(), result);
 }
 
-export function createMockedMediaStream(existingTracks) {
+export function createMockedMediaStream(existingTracks?: any) {
     let tracks = existingTracks || [
         createMockedMediaStreamTrack({
             kind: "audio",
@@ -150,10 +150,10 @@ export function createMockedMediaStream(existingTracks) {
         id: randomString(),
         addTrack: jest.fn((track) => tracks.push(track)),
         removeTrack: jest.fn((track) => {
-            tracks = tracks.filter((t) => t !== track);
+            tracks = tracks.filter((t: any) => t !== track);
         }),
-        getAudioTracks: () => tracks.filter((t) => t.kind === "audio"),
-        getVideoTracks: () => tracks.filter((t) => t.kind === "video"),
+        getAudioTracks: () => tracks.filter((t: any) => t.kind === "audio"),
+        getVideoTracks: () => tracks.filter((t: any) => t.kind === "video"),
         getTracks: () => tracks,
         close: () => {
             result.active = false;
@@ -164,8 +164,8 @@ export function createMockedMediaStream(existingTracks) {
                 ...result,
             };
         },
-        getTrackById: (trackId) => {
-            const foundTracks = tracks.filter((track) => track.id === trackId);
+        getTrackById: (trackId: string) => {
+            const foundTracks = tracks.filter((track: any) => track.id === trackId);
             if (foundTracks.length < 1) {
                 return null;
             }

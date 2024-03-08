@@ -94,9 +94,9 @@ export default class VegaRtcManager {
         emitter: any;
         serverSocket: any;
         webrtcProvider: any;
-        features: any;
-        eventClaim: any;
-        deviceHandlerFactory: any;
+        features?: any;
+        eventClaim?: any;
+        deviceHandlerFactory?: any;
     }) {
         const { session, iceServers, sfuServer, mediaserverConfigTtlSeconds } = room;
 

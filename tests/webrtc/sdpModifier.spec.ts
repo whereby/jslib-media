@@ -67,7 +67,7 @@ describe("sdpModifier", () => {
     });
 
     describe("add RTP Header Extension", () => {
-        const createSdpFromExtmap = (extmap) => {
+        const createSdpFromExtmap = (extmap: any) => {
             return (
                 "v=0\r\n" +
                 "o=- 3699601008446741681 2 IN IP4 127.0.0.1\r\n" +
@@ -147,7 +147,7 @@ describe("sdpModifier", () => {
                                 "a=extmap:9 http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time\r\n"
                             );
                         }
-                        extmap[media].forEach((extmap) => {
+                        (extmap as any)[media].forEach((extmap: any) => {
                             expect(mediaSection).toContain(extmap);
                         });
                     }
@@ -200,7 +200,7 @@ describe("sdpModifier", () => {
                         expect(mediaSection).toContain(
                             "a=extmap:9 http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time\r\n"
                         );
-                        extmap[media].forEach((extmap) => {
+                        (extmap as any)[media].forEach((extmap: any) => {
                             expect(mediaSection).toContain(extmap);
                         });
                     }
@@ -239,7 +239,7 @@ describe("sdpModifier", () => {
                         expect(mediaSection).toContain(
                             "a=extmap:12 http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time\r\n"
                         );
-                        extmap[media].forEach((extmap) => {
+                        (extmap as any)[media].forEach((extmap: any) => {
                             expect(mediaSection).toContain(extmap);
                         });
                     }
@@ -279,7 +279,7 @@ describe("sdpModifier", () => {
                         expect(mediaSection).toContain(
                             "a=extmap:16 http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time\r\n"
                         );
-                        extmap[media].forEach((extmap) => {
+                        (extmap as any)[media].forEach((extmap: any) => {
                             expect(mediaSection).toContain(extmap);
                         });
                     }
@@ -320,7 +320,7 @@ describe("sdpModifier", () => {
                         expect(mediaSection).toContain(
                             "a=extmap:17 http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time\r\n"
                         );
-                        extmap[media].forEach((extmap) => {
+                        (extmap as any)[media].forEach((extmap: any) => {
                             expect(mediaSection).toContain(extmap);
                         });
                     }
@@ -361,7 +361,7 @@ describe("sdpModifier", () => {
                         expect(mediaSection).toContain(
                             "a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time\r\n"
                         );
-                        extmap[media].forEach((extmap) => {
+                        (extmap as any)[media].forEach((extmap: any) => {
                             expect(mediaSection).toContain(extmap);
                         });
                     }

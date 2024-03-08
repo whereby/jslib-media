@@ -145,7 +145,7 @@ describe("VegaMediaQualityMonitor", () => {
                 expect(Object.keys(vegaQualityMonitor._producers).length).toBe(0);
                 expect(Object.keys(vegaQualityMonitor._clients).length).toBe(0);
                 expect(vegaQualityMonitor._intervalHandle).toBeUndefined();
-                resolve();
+                resolve(undefined);
             }, 3200);
         });
         await delay;

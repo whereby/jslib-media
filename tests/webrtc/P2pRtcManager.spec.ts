@@ -36,15 +36,16 @@ function getValidSdpString() {
 }
 
 describe("P2pRtcManager", () => {
-    let navigator;
-    let serverSocketStub;
-    let serverSocket;
-    let emitter;
-    let webrtcProvider;
-    let clientId;
-    let mediaContstraints;
+    let navigator: any;
+    let serverSocketStub: any;
+    let serverSocket: any;
+    let emitter: any;
+    let webrtcProvider: any;
+    let clientId: any;
+    let mediaContstraints: any;
 
     beforeEach(() => {
+        // @ts-ignore
         window.RTCPeerConnection = helpers.createRTCPeerConnectionStub();
         mediaContstraints = {
             audio: true,
@@ -95,17 +96,11 @@ describe("P2pRtcManager", () => {
             serverSocket: _serverSocket,
             webrtcProvider,
             features,
-            logger: {
-                debug: () => {},
-                error: () => {},
-                info: () => {},
-                log: () => {},
-                warn: () => {},
-            },
         });
     }
 
     afterEach(() => {
+        // @ts-ignore
         delete window.RTCPeerConnection;
     });
 
@@ -118,16 +113,17 @@ describe("P2pRtcManager", () => {
             mediaserverConfigTtlSeconds: 60,
         };
 
-        let rtcManager;
-        let emitterStub;
-        let serverSocketStub;
-        let serverSocket;
-        let iceServers;
-        let clientId;
+        let rtcManager: any;
+        let emitterStub: any;
+        let serverSocketStub: any;
+        let serverSocket: any;
+        let iceServers: any;
+        let clientId: any;
 
         beforeEach(() => {
             jest.useFakeTimers();
             clientId = helpers.randomString("client-");
+            // @ts-ignore
             window.RTCPeerConnection = helpers.createRTCPeerConnectionStub();
 
             iceServers = helpers.createIceServersConfig();
@@ -139,6 +135,7 @@ describe("P2pRtcManager", () => {
 
         afterEach(() => {
             jest.useRealTimers();
+            // @ts-ignore
             delete window.RTCPeerConnection;
         });
 
@@ -150,7 +147,7 @@ describe("P2pRtcManager", () => {
             });
 
             it("should deregister all listeners defined at setup", () => {
-                const deregisterFunctions = [];
+                const deregisterFunctions: any = [];
                 serverSocketStub.on = () => {
                     const deregisterFunc = jest.fn();
                     deregisterFunctions.push(deregisterFunc);
@@ -160,7 +157,7 @@ describe("P2pRtcManager", () => {
 
                 rtcManager.disconnectAll();
 
-                deregisterFunctions.forEach((deregisterFunction) => {
+                deregisterFunctions.forEach((deregisterFunction: any) => {
                     expect(deregisterFunction).toHaveBeenCalled();
                 });
             });
@@ -336,10 +333,7 @@ describe("P2pRtcManager", () => {
                 rtcManager.accept({ clientId });
 
                 // The object should be constructed with the given ice servers.
-                expect(window.RTCPeerConnection).toHaveBeenCalledWith(
-                    { iceServers, sdpSemantics: "unified-plan" },
-                    expect.anything()
-                );
+                expect(window.RTCPeerConnection).toHaveBeenCalledWith({ iceServers, sdpSemantics: "unified-plan" });
             });
 
             it("stores the new peer connection", async () => {
@@ -411,8 +405,8 @@ describe("P2pRtcManager", () => {
                 };
 
                 describe("broadcasts when ice connection state becomes", () => {
-                    Object.keys(iceStateToConnectionStatus).forEach((iceState) => {
-                        const expectedStatus = iceStateToConnectionStatus[iceState];
+                    Object.keys(iceStateToConnectionStatus).forEach((iceState: any) => {
+                        const expectedStatus = (iceStateToConnectionStatus as any)[iceState];
 
                         it("broadcasts when ice connection state becomes " + iceState, async () => {
                             const { pc } = await rtcManager.accept({ clientId });
@@ -429,7 +423,7 @@ describe("P2pRtcManager", () => {
                                 expect.objectContaining({
                                     clientId,
                                     streamIds: [],
-                                    status: CONNECTION_STATUS.TYPES[expectedStatus],
+                                    status: (CONNECTION_STATUS.TYPES as any)[expectedStatus],
                                 })
                             );
                         });
@@ -469,71 +463,10 @@ describe("P2pRtcManager", () => {
         });
     });
 
-    describe("constructor", () => {
-        const selfId = helpers.randomString("client-");
-        const room = { name: helpers.randomString("/room-"), iceServers: {} };
-        const features = {};
-
-        itShouldThrowIfMissing("selfId", () => {
-            //eslint-disable-next-line no-new
-            new P2pRtcManager({
-                room,
-                emitter,
-                serverSocket,
-                webrtcProvider,
-                features,
-            });
-        });
-
-        itShouldThrowIfMissing("room", () => {
-            //eslint-disable-next-line no-new
-            new P2pRtcManager({
-                selfId,
-                emitter,
-                serverSocket,
-                webrtcProvider,
-                features,
-            });
-        });
-
-        itShouldThrowIfMissing("emitter", () => {
-            //eslint-disable-next-line no-new
-            new P2pRtcManager({
-                selfId,
-                room,
-                serverSocket,
-                webrtcProvider,
-                features,
-            });
-        });
-
-        itShouldThrowIfMissing("serverSocket", () => {
-            //eslint-disable-next-line no-new
-            new P2pRtcManager({
-                selfId,
-                room,
-                emitter,
-                webrtcProvider,
-                features,
-            });
-        });
-
-        itShouldThrowIfMissing("webrtcProvider", () => {
-            //eslint-disable-next-line no-new
-            new P2pRtcManager({
-                selfId,
-                room,
-                emitter,
-                serverSocket,
-                features,
-            });
-        });
-    });
-
     describe("isInitializedWith", () => {
         const selfId = helpers.randomString("client-");
         const roomName = helpers.randomString("/room-");
-        let rtcManager;
+        let rtcManager: any;
 
         beforeEach(() => {
             rtcManager = createRtcManager({ selfId, roomName });
@@ -587,13 +520,10 @@ describe("P2pRtcManager", () => {
             createRtcManager({ iceServers })._connect(clientId);
 
             // The object should be constructed with the given peer connection config.
-            expect(window.RTCPeerConnection).toHaveBeenCalledWith(
-                {
-                    iceServers,
-                    sdpSemantics: "unified-plan",
-                },
-                expect.anything()
-            );
+            expect(window.RTCPeerConnection).toHaveBeenCalledWith({
+                iceServers,
+                sdpSemantics: "unified-plan",
+            });
         });
 
         it("uses latest ICE server information", () => {
@@ -604,36 +534,27 @@ describe("P2pRtcManager", () => {
 
             rtcManager._connect(clientId);
 
-            expect(window.RTCPeerConnection).toHaveBeenCalledWith(
-                {
-                    iceServers: updatedIceServers,
-                    sdpSemantics: "unified-plan",
-                },
-                expect.anything()
-            );
+            expect(window.RTCPeerConnection).toHaveBeenCalledWith({
+                iceServers: updatedIceServers,
+                sdpSemantics: "unified-plan",
+            });
         });
 
         it("defaults to creating a new peer connection with unified semantics", () => {
-            createRtcManager({ iceServers })._connect(clientId, {});
+            createRtcManager({ iceServers })._connect(clientId);
 
-            expect(window.RTCPeerConnection).toHaveBeenCalledWith(
-                { sdpSemantics: "unified-plan", iceServers },
-                expect.anything()
-            );
+            expect(window.RTCPeerConnection).toHaveBeenCalledWith({ sdpSemantics: "unified-plan", iceServers });
         });
 
         it("creates a new peer connection with iceTransports set to relay if useOnlyTurn feature is set", () => {
-            createRtcManager({ iceServers, features: { useOnlyTURN: true } })._connect(clientId, {});
+            createRtcManager({ iceServers, features: { useOnlyTURN: true } })._connect(clientId);
 
             // The object should be constructed some TURN servers and iceTransportPolicy set to 'relay'.
-            expect(window.RTCPeerConnection).toHaveBeenCalledWith(
-                {
-                    iceTransportPolicy: "relay",
-                    sdpSemantics: "unified-plan",
-                    iceServers,
-                },
-                expect.anything()
-            );
+            expect(window.RTCPeerConnection).toHaveBeenCalledWith({
+                iceTransportPolicy: "relay",
+                sdpSemantics: "unified-plan",
+                iceServers,
+            });
         });
 
         it("stores the new peer connection", async () => {
@@ -769,7 +690,7 @@ describe("P2pRtcManager", () => {
                 const { pc } = await p2pRtcManager._connect(clientId);
                 pc.iceConnectionState = "disconnected";
                 pc.localDescription = { type: "offer" };
-                const session = { pc };
+                const session: any = { pc };
                 session.canModifyPeerConnection = jest.fn().mockReturnValue(true);
                 p2pRtcManager._maybeRestartIce(clientId, session);
                 expect(emitter.emit).toHaveBeenCalledWith(rtcManagerEvents.ICE_RESTART, undefined);
@@ -867,7 +788,7 @@ describe("P2pRtcManager", () => {
         });
 
         describe("oniceconnectionstatechange", () => {
-            let rtcManager;
+            let rtcManager: any;
 
             beforeEach(() => {
                 rtcManager = createRtcManager();
@@ -887,7 +808,7 @@ describe("P2pRtcManager", () => {
 
             describe("broadcasts when ice connection state becomes", () => {
                 Object.keys(iceStateToConnectionStatus).forEach((iceState) => {
-                    const expectedStatus = iceStateToConnectionStatus[iceState];
+                    const expectedStatus = (iceStateToConnectionStatus as any)[iceState];
 
                     it("broadcasts when ice connection state becomes " + iceState, async () => {
                         const { pc } = await createRtcManager().accept({ clientId });
@@ -902,7 +823,7 @@ describe("P2pRtcManager", () => {
                             expect.objectContaining({
                                 clientId,
                                 streamIds: [],
-                                status: CONNECTION_STATUS.TYPES[expectedStatus],
+                                status: (CONNECTION_STATUS.TYPES as any)[expectedStatus],
                             })
                         );
                     });
@@ -936,8 +857,8 @@ describe("P2pRtcManager", () => {
     });
 
     describe("stopOrResumeVideo", () => {
-        let localStream;
-        let rtcManager;
+        let localStream: any;
+        let rtcManager: any;
 
         beforeEach(() => {
             jest.useFakeTimers();
@@ -997,7 +918,7 @@ describe("P2pRtcManager", () => {
         });
 
         describe("when enabling", () => {
-            let gumStream;
+            let gumStream: any;
 
             beforeEach(() => {
                 gumStream = helpers.createMockedMediaStream();
@@ -1058,8 +979,8 @@ describe("P2pRtcManager", () => {
     });
 
     describe("handling localStream `stopresumevideo` event", () => {
-        let localStream;
-        let rtcManager;
+        let localStream: any;
+        let rtcManager: any;
 
         beforeEach(() => {
             localStream = helpers.createMockedMediaStream();

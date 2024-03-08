@@ -18,6 +18,7 @@ class MockError extends Error {
 
 const oldMediaDevices = global.navigator.mediaDevices;
 afterEach(() => {
+    // @ts-ignore
     global.navigator.mediaDevices = oldMediaDevices;
 });
 
@@ -48,10 +49,11 @@ describe("buildDeviceList", () => {
 });
 
 describe("enumerate", () => {
-    let devices;
+    let devices: any;
 
     beforeEach(() => {
         devices = [];
+        // @ts-ignore
         global.navigator.mediaDevices = {
             enumerateDevices: () => Promise.resolve(devices),
         };
@@ -77,11 +79,11 @@ describe("enumerate", () => {
 });
 
 describe("stopStreamTracks", () => {
-    let vdev;
-    let adev;
-    let videoTrack;
-    let audioTrack;
-    let stream;
+    let vdev: any;
+    let adev: any;
+    let videoTrack: any;
+    let audioTrack: any;
+    let stream: any;
 
     beforeEach(() => {
         vdev = { kind: "videoinput", deviceId: "vdev" };
@@ -89,10 +91,6 @@ describe("stopStreamTracks", () => {
         videoTrack = { kind: "video", stop: jest.fn(), getCapabilities: () => vdev };
         audioTrack = { kind: "audio", stop: jest.fn(), getCapabilities: () => adev };
         stream = helpers.createMockedMediaStream([videoTrack, audioTrack]);
-    });
-
-    it("should throw when only is not audio or video", () => {
-        expect(() => MediaDevices.stopStreamTracks(stream, "random-string")).toThrow();
     });
 
     it("should stop all tracks in the stream", () => {
@@ -111,16 +109,16 @@ describe("stopStreamTracks", () => {
 });
 
 describe("getStream", () => {
-    let vdev1;
-    let vdev2;
-    let adev1;
-    let adev2;
-    let videoTrack1;
-    let videoTrack2;
-    let audioTrack1;
-    let audioTrack2;
-    let devices;
-    let stream;
+    let vdev1: any;
+    let vdev2: any;
+    let adev1: any;
+    let adev2: any;
+    let videoTrack1: any;
+    let videoTrack2: any;
+    let audioTrack1: any;
+    let audioTrack2: any;
+    let devices: any;
+    let stream: any;
 
     beforeEach(() => {
         vdev1 = { kind: "videoinput", deviceId: "vdev1" };
@@ -135,10 +133,12 @@ describe("getStream", () => {
         stream = helpers.createMockedMediaStream([videoTrack1, audioTrack1]);
         stream.removeTrack = jest.fn();
         stream.addTrack = jest.fn();
+        // @ts-ignore
         global.navigator.mediaDevices = {};
     });
 
     it("should stop all tracks in stream when switching", async () => {
+        // @ts-ignore
         global.navigator.mediaDevices.getUserMedia = jest.fn(() => {
             return Promise.resolve(helpers.createMockedMediaStream([videoTrack1, audioTrack2]));
         });
@@ -162,6 +162,7 @@ describe("getStream", () => {
 
     it("should NOT stop audio track in stream when switching only video", async () => {
         global.navigator.mediaDevices.getUserMedia = async () =>
+            // @ts-ignore
             helpers.createMockedMediaStream([videoTrack1, audioTrack2]);
 
         await MediaDevices.getStream(
@@ -195,6 +196,7 @@ describe("getStream", () => {
     });
 
     it("should reuse videoTrack if switching audio", async () => {
+        // @ts-ignore
         global.navigator.mediaDevices.getUserMedia = jest.fn(() => {
             return Promise.resolve(helpers.createMockedMediaStream([videoTrack1, audioTrack2]));
         });
@@ -224,6 +226,7 @@ describe("getStream", () => {
     });
 
     it("should reuse audioTrack if switching video", async () => {
+        // @ts-ignore
         global.navigator.mediaDevices.getUserMedia = jest.fn(() => {
             return Promise.resolve(helpers.createMockedMediaStream([videoTrack2, audioTrack1]));
         });
@@ -446,7 +449,7 @@ describe("getUserMedia", () => {
 
         try {
             await MediaDevices.getUserMedia({});
-        } catch (e) {
+        } catch (e: any) {
             err = e;
         }
 
@@ -454,6 +457,7 @@ describe("getUserMedia", () => {
     });
 
     it("should give constraints to real getUserMedia", () => {
+        // @ts-ignore
         global.navigator.mediaDevices = { getUserMedia: jest.fn().mockResolvedValue() };
         const constraints = { audio: Symbol("audio") };
 

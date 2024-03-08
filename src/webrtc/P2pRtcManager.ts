@@ -190,7 +190,7 @@ export default class P2pRtcManager {
         return this._replaceTrackToPeerConnections(oldTrack, newTrack);
     }
 
-    accept({ clientId, shouldAddLocalVideo }: { clientId: any; shouldAddLocalVideo: any }) {
+    accept({ clientId, shouldAddLocalVideo }: { clientId: any; shouldAddLocalVideo?: any }) {
         return this.acceptNewStream({ streamId: clientId, clientId, shouldAddLocalVideo });
     }
 
