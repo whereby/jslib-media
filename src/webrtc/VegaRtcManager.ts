@@ -1,7 +1,7 @@
 import { Device } from "mediasoup-client";
 import { PROTOCOL_EVENTS, PROTOCOL_REQUESTS, PROTOCOL_RESPONSES } from "../model/protocol";
 import * as CONNECTION_STATUS from "../model/connectionStatusConstants";
-import ServerSocket from "../utils/ServerSocket";
+import { ServerSocket } from "../utils/ServerSocket";
 import rtcManagerEvents from "./rtcManagerEvents";
 import rtcStats from "./rtcStatsService";
 import adapterRaw from "webrtc-adapter";

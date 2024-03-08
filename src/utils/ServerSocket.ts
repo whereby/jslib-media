@@ -12,7 +12,7 @@ const NOOP_KEEPALIVE_INTERVAL = 2000;
 /**
  * Wrapper class that extends the Socket.IO client library.
  */
-export default class ServerSocket {
+export class ServerSocket {
     _socket: any;
     _reconnectManager?: ReconnectManager | null;
     noopKeepaliveInterval: any;

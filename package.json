@@ -13,7 +13,7 @@
     "url": "https://github.com/whereby/jslib-media/issues"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc",
+    "build": "rimraf dist && rollup -c rollup.config.js",
     "lint": "eslint src tests",
     "test": "npm run lint && npm run test:unit",
     "test:unit": "jest",
@@ -21,6 +21,37 @@
     "format:fix": "prettier --write './**/*.{js,ts,yml,json}'",
     "format:check": "prettier --check './**/*.{js,ts,yml,json}'"
   },
+  "exports": {
+    "./webrtc": {
+      "import": "./dist/webrtc.js",
+      "types": "./dist/webrtc.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils.js",
+      "types": "./dist/utils.d.ts"
+    },
+    "./model": {
+      "import": "./dist/model.js",
+      "types": "./dist/model.d.ts"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "webrtc": [
+        "./dist/webrtc.d.ts"
+      ],
+      "utils": [
+        "./dist/utils.d.ts"
+      ],
+      "model": [
+        "./dist/model.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
   "dependencies": {
     "check-ip": "^1.1.1",
     "events": "^3.3.0",
@@ -40,6 +71,8 @@
     "@babel/core": "^7.23.2",
     "@babel/eslint-parser": "^7.22.15",
     "@babel/preset-env": "^7.23.2",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-replace": "^5.0.5",
     "@types/jest": "^29.5.12",
     "@types/sdp-transform": "^2.4.9",
     "@types/uuid": "^9.0.8",
@@ -56,6 +89,9 @@
     "jest-environment-jsdom": "^29.7.0",
     "prettier": "3.2.5",
     "process": "^0.11.10",
+    "rollup": "^4.12.1",
+    "rollup-plugin-dts": "^6.1.0",
+    "rollup-plugin-typescript2": "^0.36.0",
     "ts-jest": "^29.1.2"
   },
   "publishConfig": {

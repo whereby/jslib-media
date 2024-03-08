@@ -6,7 +6,7 @@ export const STREAM_TYPES = {
     SCREEN_SHARE: "screen_share",
 };
 
-export default class RtcStream {
+export class RtcStream {
     id: string;
     type: string;
     isEnabled: boolean;

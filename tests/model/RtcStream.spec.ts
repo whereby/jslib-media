@@ -1,4 +1,4 @@
-import RtcStream, { STREAM_TYPES } from "../../src/model/RtcStream";
+import { RtcStream, STREAM_TYPES } from "../../src/model/RtcStream";
 
 describe("RtcStream", () => {
     describe("constructor", () => {

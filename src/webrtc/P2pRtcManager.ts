@@ -1,11 +1,11 @@
 import rtcStats from "./rtcStatsService";
 import Session from "./Session";
-import ServerSocket from "../utils/ServerSocket";
+import { ServerSocket } from "../utils/ServerSocket";
 import { MAXIMUM_TURN_BANDWIDTH, MAXIMUM_TURN_BANDWIDTH_UNLIMITED, MEDIA_JITTER_BUFFER_TARGET } from "./constants";
 import * as webrtcBugDetector from "./bugDetector";
 import { PROTOCOL_REQUESTS, RELAY_MESSAGES, PROTOCOL_RESPONSES } from "../model/protocol";
 import * as CONNECTION_STATUS from "../model/connectionStatusConstants";
-import RtcStream from "../model/RtcStream";
+import { RtcStream } from "../model/RtcStream";
 import { getOptimalBitrate } from "../utils/optimalBitrate";
 import { setCodecPreferenceSDP, addAbsCaptureTimeExtMap } from "./sdpModifier";
 import adapterRaw from "webrtc-adapter";

@@ -1,6 +1,6 @@
 import { PROTOCOL_RESPONSES } from "../../src/model/protocol";
 import { ReconnectManager } from "../../src/utils/ReconnectManager";
-import ServerSocket from "../../src/utils/ServerSocket";
+import { ServerSocket } from "../../src/utils/ServerSocket";
 
 jest.mock("../../src/utils/ReconnectManager");
 
