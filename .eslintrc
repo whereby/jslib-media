@@ -4,16 +4,17 @@
         "browser": true,
         "es6": true,
         "jest/globals": true,
-        "node": true
+        "node": true,
     },
-    "extends": ["./config/eslint/browser", "prettier"],
+    "ignorePatterns": ["dist/*"],
+    "extends": ["./config/eslint/browser", "prettier", "plugin:@typescript-eslint/recommended"],
     "parserOptions": {
         "sourceType": "module",
-        "requireConfigFile": false
+        "requireConfigFile": false,
     },
     "plugins": ["prettier", "jest"],
     "rules": {
         "no-console": ["error", { "allow": ["warn", "error"] }],
-        "prettier/prettier": "error"
-    }
+        "prettier/prettier": "error",
+    },
 }

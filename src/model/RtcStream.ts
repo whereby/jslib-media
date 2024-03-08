@@ -17,7 +17,7 @@ export default class RtcStream {
     stream: MediaStream | null;
     streamId: string | null;
 
-    constructor(id: string, type: string) {
+    constructor(id: string | number, type: string) {
         this.id = "" + id;
         this.type = type;
 

@@ -14,11 +14,11 @@ const NOOP_KEEPALIVE_INTERVAL = 2000;
  */
 export default class ServerSocket {
     _socket: any;
-    _reconnectManager: ReconnectManager | null;
+    _reconnectManager?: ReconnectManager | null;
     noopKeepaliveInterval: any;
     _wasConnectedUsingWebsocket?: boolean;
 
-    constructor(hostName: string, optionsOverrides: any, glitchFree = false) {
+    constructor(hostName: string, optionsOverrides?: any, glitchFree: boolean = false) {
         this._wasConnectedUsingWebsocket = false;
         this._reconnectManager = null;
         this._socket = io(hostName, {
@@ -75,7 +75,7 @@ export default class ServerSocket {
         });
     }
 
-    setRtcManager(rtcManager: any) {
+    setRtcManager(rtcManager?: any) {
         if (this._reconnectManager) {
             this._reconnectManager.rtcManager = rtcManager;
         }

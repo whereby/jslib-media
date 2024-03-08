@@ -6,7 +6,7 @@ jest.mock("../../src/utils/ReconnectManager");
 
 describe("ServerSocket", () => {
     describe("on", () => {
-        let serverSocket;
+        let serverSocket: any;
 
         beforeEach(() => {
             serverSocket = new ServerSocket("https://localhost");
@@ -53,7 +53,7 @@ describe("ServerSocket", () => {
 
         it("should not have a reconnect manager", () => {
             const serverSocket = new ServerSocket("https://localhost");
-            expect(serverSocket["_reconnectManager"]).toBeUndefined();
+            expect(serverSocket["_reconnectManager"]).toBeNull();
         });
 
         it("should accept an rtcManager with glitchfree on", () => {

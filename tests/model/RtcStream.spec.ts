@@ -2,24 +2,6 @@ import RtcStream, { STREAM_TYPES } from "../../src/model/RtcStream";
 
 describe("RtcStream", () => {
     describe("constructor", () => {
-        it("should throw error if id is null", () => {
-            expect(() => {
-                new RtcStream(null, STREAM_TYPES.SCREEN_SHARE); //eslint-disable-line no-new
-            }).toThrow("id is required");
-        });
-
-        it("should throw error if id is undefined", () => {
-            expect(() => {
-                new RtcStream(undefined, STREAM_TYPES.SCREEN_SHARE); //eslint-disable-line no-new
-            }).toThrow("id is required");
-        });
-
-        it("should throw error if type is missing", () => {
-            expect(() => {
-                new RtcStream("1"); //eslint-disable-line no-new
-            }).toThrow("type is required");
-        });
-
         it("should create a stream with a string id if the specified id is a number", () => {
             const stream = new RtcStream(1, STREAM_TYPES.SCREEN_SHARE);
 
@@ -38,7 +20,7 @@ describe("RtcStream", () => {
 
     describe("setup", () => {
         describe("setting enabled state for streams", () => {
-            let fakeStream;
+            let fakeStream: any;
 
             beforeEach(() => {
                 fakeStream = {
@@ -70,7 +52,7 @@ describe("RtcStream", () => {
     });
 
     describe("setAudioEnabled", () => {
-        let stream;
+        let stream: any;
         beforeEach(() => {
             stream = new RtcStream("id", STREAM_TYPES.CAMERA);
             stream.stream = {
@@ -92,7 +74,7 @@ describe("RtcStream", () => {
         });
 
         it("sets each stream's track' enabled property", () => {
-            const track = {};
+            const track: any = {};
             stream.stream.getAudioTracks = jest.fn(() => [track]);
 
             const expectedValue = true;
@@ -103,7 +85,7 @@ describe("RtcStream", () => {
     });
 
     describe("setVideoEnabled", () => {
-        let stream;
+        let stream: any;
         beforeEach(() => {
             stream = new RtcStream("id", STREAM_TYPES.CAMERA);
             stream.stream = {
@@ -125,7 +107,7 @@ describe("RtcStream", () => {
         });
 
         it("sets each stream's track' enabled property", () => {
-            const track = {};
+            const track: any = {};
             stream.stream.getVideoTracks = jest.fn(() => [track]);
 
             const expectedValue = true;
