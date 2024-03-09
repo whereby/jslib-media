@@ -1,3 +1,4 @@
+import { RtcManager } from "src/webrtc";
 import { PROTOCOL_RESPONSES } from "../../src/model/protocol";
 import { ReconnectManager } from "../../src/utils/ReconnectManager";
 import { ServerSocket } from "../../src/utils/ServerSocket";
@@ -58,7 +59,7 @@ describe("ServerSocket", () => {
 
         it("should accept an rtcManager with glitchfree on", () => {
             const serverSocket = new ServerSocket("https://localhost", null, true);
-            const mockManager = jest.fn();
+            const mockManager = jest.fn() as any;
 
             serverSocket.setRtcManager(mockManager);
 
@@ -70,7 +71,7 @@ describe("ServerSocket", () => {
 
             delete serverSocket._reconnectManager;
 
-            expect(() => serverSocket.setRtcManager({})).not.toThrow();
+            expect(() => serverSocket.setRtcManager({} as any)).not.toThrow();
         });
     });
 

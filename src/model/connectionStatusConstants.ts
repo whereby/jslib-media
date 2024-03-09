@@ -1,4 +1,6 @@
-export const EVENTS = {
+import { RtcEvents } from "src/webrtc/types";
+
+export const EVENTS: Record<string, keyof RtcEvents> = {
     CLIENT_CONNECTION_STATUS_CHANGED: "client_connection_status_changed",
     STREAM_ADDED: "stream_added",
     RTC_MANAGER_CREATED: "rtc_manager_created",

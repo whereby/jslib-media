@@ -2,6 +2,7 @@ import EventEmitter from "events";
 import { getUpdatedStats } from "../webrtc/stats/StatsMonitor/index";
 import { PROTOCOL_EVENTS, PROTOCOL_RESPONSES } from "../model/protocol";
 import Logger from "./Logger";
+import { RtcManager } from "../webrtc/types";
 
 const logger = new Logger();
 
@@ -9,7 +10,7 @@ export class ReconnectManager extends EventEmitter {
     _socket: any;
     _clients: any;
     _signalDisconnectTime?: number;
-    rtcManager?: any;
+    rtcManager?: RtcManager;
     metrics: {
         roomJoinedLate: number;
         pendingClientCanceled: number;

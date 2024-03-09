@@ -1,7 +1,8 @@
 import adapterRaw from "webrtc-adapter";
+import { GetConstraintsOptions, GetMediaConstraintsOptions } from "./types";
 
+// @ts-ignore
 const adapter = adapterRaw.default ?? adapterRaw;
-
 const isSafari = adapter.browserDetails.browser === "safari";
 
 // Expects format 640x360@25, returns [width, height, fps]
@@ -20,17 +21,7 @@ export function getMediaConstraints({
     resolution,
     simulcast,
     widescreen,
-}: {
-    disableAEC?: boolean;
-    disableAGC?: boolean;
-    hd?: boolean;
-    lax?: boolean;
-    lowDataMode?: boolean;
-    preferredDeviceIds: { audioId: any; videoId: any };
-    resolution?: any;
-    simulcast?: boolean;
-    widescreen?: boolean;
-}) {
+}: GetMediaConstraintsOptions) {
     let HIGH_HEIGHT: any = 480;
     let LOW_HEIGHT: any = 240;
 
@@ -82,7 +73,7 @@ export function getMediaConstraints({
 /**
  * High level mediaConstraints helper
  */
-export default function getConstraints({ devices, videoId, audioId, options, type = "ideal" }: any) {
+export default function getConstraints({ devices, videoId, audioId, options, type = "ideal" }: GetConstraintsOptions) {
     const audioDevices = devices.filter((d: any) => d.kind === "audioinput");
     const videoDevices = devices.filter((d: any) => d.kind === "videoinput");
     const useDefaultAudio = !audioId || !audioDevices.some((d: any) => d.deviceId === audioId);

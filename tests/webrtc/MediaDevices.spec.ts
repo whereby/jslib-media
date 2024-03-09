@@ -471,7 +471,7 @@ describe("getDeviceData", () => {
     it("empty stream", () => {
         const stream = helpers.createMockedMediaStream([]);
 
-        const res = MediaDevices.getDeviceData({ stream });
+        const res = MediaDevices.getDeviceData({ stream } as any);
 
         expect(res).toEqual({ audio: { deviceId: null }, video: { deviceId: null } });
     });
@@ -481,7 +481,7 @@ describe("getDeviceData", () => {
 
         const res = MediaDevices.getDeviceData({
             audioTrack: null,
-            videoTrack: vtrack,
+            videoTrack: vtrack as any,
             devices: [],
         });
 
@@ -495,7 +495,7 @@ describe("getDeviceData", () => {
         const atrack = helpers.createMockedMediaStreamTrack({ id: "audiotrack", kind: "audio" });
 
         const res = MediaDevices.getDeviceData({
-            audioTrack: atrack,
+            audioTrack: atrack as any,
             devices: [],
         });
 
@@ -510,8 +510,8 @@ describe("getDeviceData", () => {
         const stopVtrack = helpers.createMockedMediaStreamTrack({ id: "stopVtrack", kind: "video" });
 
         const res = MediaDevices.getDeviceData({
-            audioTrack: atrack,
-            stoppedVideoTrack: stopVtrack,
+            audioTrack: atrack as any,
+            stoppedVideoTrack: stopVtrack as any,
             devices: [],
         });
 
@@ -537,7 +537,7 @@ describe("getDeviceData", () => {
         const res = MediaDevices.getDeviceData({
             audioTrack: atrack,
             videoTrack: vtrack,
-            devices,
+            devices: devices as any,
         });
 
         expect(res).toEqual({
@@ -556,7 +556,7 @@ describe("getDeviceData", () => {
         const res = MediaDevices.getDeviceData({
             audioTrack: null,
             videoTrack: null,
-            devices,
+            devices: devices as any,
             lastVideoId: videoId,
         });
 

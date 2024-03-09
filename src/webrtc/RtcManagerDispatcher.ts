@@ -2,10 +2,12 @@ import P2pRtcManager from "./P2pRtcManager";
 import { PROTOCOL_RESPONSES } from "../model/protocol";
 import * as CONNECTION_STATUS from "../model/connectionStatusConstants";
 import VegaRtcManager from "./VegaRtcManager";
+import { ServerSocket } from "src/utils";
+import { RtcManager, RtcEvents } from "./types";
 
 export default class RtcManagerDispatcher {
-    emitter: any;
-    currentManager: any;
+    emitter: { emit: <K extends keyof RtcEvents>(eventName: K, args?: RtcEvents[K]) => void };
+    currentManager: RtcManager | null;
 
     constructor({
         emitter,
@@ -13,8 +15,8 @@ export default class RtcManagerDispatcher {
         webrtcProvider,
         features,
     }: {
-        emitter: any;
-        serverSocket: any;
+        emitter: { emit: <K extends keyof RtcEvents>(eventName: K, args?: RtcEvents[K]) => void };
+        serverSocket: ServerSocket;
         webrtcProvider: any;
         features: any;
     }) {
@@ -22,7 +24,7 @@ export default class RtcManagerDispatcher {
         this.currentManager = null;
         serverSocket.on(
             PROTOCOL_RESPONSES.ROOM_JOINED,
-            ({ room, selfId, error, eventClaim }: { room: any; selfId: any; error: any; eventClaim: any }) => {
+            ({ room, selfId, error, eventClaim }: { room: any; selfId: any; error: any; eventClaim: string }) => {
                 if (error) return; // ignore error responses which lack room
                 const config = {
                     selfId,

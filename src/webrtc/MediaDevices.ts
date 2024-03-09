@@ -1,5 +1,12 @@
 import getConstraints from "./mediaConstraints";
 import Logger from "../utils/Logger";
+import {
+    GetConstraintsOptions,
+    GetDeviceDataResult,
+    GetStreamOptions,
+    GetStreamResult,
+    GetUpdatedDevicesResult,
+} from "./types";
 
 const logger = new Logger();
 
@@ -19,7 +26,7 @@ function removeDuplicates(devices: any) {
     );
 }
 
-export async function enumerate() {
+export async function enumerate(): Promise<MediaDeviceInfo[]> {
     const devices = await global.navigator.mediaDevices.enumerateDevices();
     const filteredDevices = removeDuplicates(devices);
     return filteredDevices;
@@ -71,7 +78,12 @@ export function getUserMedia(constraints: any) {
     });
 }
 
-function getSettingsFromTrack(kind: string, track: any, devices: any, lastUsedId: any) {
+function getSettingsFromTrack(
+    kind: string,
+    track?: MediaStreamTrack | null,
+    devices?: MediaDeviceInfo[],
+    lastUsedId?: string
+) {
     let settings: any = { deviceId: null };
 
     if (!track) {
@@ -108,7 +120,7 @@ function getSettingsFromTrack(kind: string, track: any, devices: any, lastUsedId
     // Okay. As if the above wasn't hacky enough (it was), this
     // is even more, basically see what we sent before
     // It's really sad if we get down to this point.
-    settings.deviceId = track.getConstraints()?.deviceId?.exact;
+    settings.deviceId = track.getConstraints()?.deviceId;
     settings.broken = 1; // just a hint
     return settings;
 }
@@ -118,7 +130,21 @@ function getSettingsFromTrack(kind: string, track: any, devices: any, lastUsedId
  *
  * @returns {{video: {deviceId}, audio: {deviceId}}} - the ids are null if not found
  */
-export function getDeviceData({ audioTrack, videoTrack, devices, stoppedVideoTrack, lastAudioId, lastVideoId }: any) {
+export function getDeviceData({
+    audioTrack,
+    videoTrack,
+    devices,
+    stoppedVideoTrack,
+    lastAudioId,
+    lastVideoId,
+}: {
+    audioTrack?: MediaStreamTrack | null;
+    videoTrack?: MediaStreamTrack | null;
+    devices: MediaDeviceInfo[];
+    stoppedVideoTrack?: boolean;
+    lastAudioId?: string | undefined;
+    lastVideoId?: string | undefined;
+}): GetDeviceDataResult {
     const usable = (d: any) => (d?.readyState === "live" ? d : null);
     videoTrack = usable(videoTrack) || stoppedVideoTrack;
     audioTrack = usable(audioTrack);
@@ -172,8 +198,8 @@ async function getTrack({
     primerTrack,
 }: {
     kind: "audio" | "video";
-    deviceId: string;
-    type: string;
+    deviceId?: boolean | string;
+    type?: string;
     fallback: any;
     primerTrack: any;
 }) {
@@ -212,7 +238,10 @@ async function constrainTrack(track: any, constraints: any) {
     }
 }
 
-export async function getStream2(constraintOpt: any, additionalOpts: any = {}) {
+export async function getStream2(
+    constraintOpt: GetConstraintsOptions,
+    additionalOpts: GetStreamOptions = {}
+): Promise<GetStreamResult> {
     const { audioId, videoId, devices, type, options } = constraintOpt;
     const { replaceStream, fallback } = additionalOpts;
     const hasGrantedPermissions = !!devices.find((d: any) => d.label !== "");
@@ -330,7 +359,10 @@ export async function getStream2(constraintOpt: any, additionalOpts: any = {}) {
  * @param options.fallback - try to give working stream
  * @returns {Promise<{stream, error=null}>}
  */
-export async function getStream(constraintOpt: any, { replaceStream, fallback = true }: any = {}) {
+export async function getStream(
+    constraintOpt: any,
+    { replaceStream, fallback = true }: GetStreamOptions = {}
+): Promise<GetStreamResult> {
     let error: any;
     let newConstraints: any;
     let retryConstraintOpt: any;
@@ -535,7 +567,19 @@ export function compareLocalDevices(before: any, after: any) {
     return changesByKind;
 }
 
-export function getUpdatedDevices({ oldDevices, newDevices, currentAudioId, currentVideoId, currentSpeakerId }: any) {
+export function getUpdatedDevices({
+    oldDevices,
+    newDevices,
+    currentAudioId,
+    currentVideoId,
+    currentSpeakerId,
+}: {
+    oldDevices: MediaDeviceInfo[];
+    newDevices: MediaDeviceInfo[];
+    currentAudioId?: string | undefined;
+    currentVideoId?: string | undefined;
+    currentSpeakerId?: string | undefined;
+}): GetUpdatedDevicesResult {
     const changesByKind = compareLocalDevices(oldDevices, newDevices);
     const changedDevices: any = {};
     const addedDevices: any = {};
@@ -544,6 +588,7 @@ export function getUpdatedDevices({ oldDevices, newDevices, currentAudioId, curr
         ["videoinput", currentVideoId],
         ["audiooutput", currentSpeakerId],
     ].forEach(([kind, currentDeviceId]) => {
+        kind = kind || "";
         const changes = changesByKind[kind];
         if (!changes) {
             return;

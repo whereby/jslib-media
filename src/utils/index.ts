@@ -8,4 +8,5 @@ export * from "./optimalBitrate";
 export * from "./ReconnectManager";
 export * from "./ServerSocket";
 export * from "./transportSettings";
-export { default as fromLocation } from "./urls";
+export * from "./types";
+export * from "./urls";

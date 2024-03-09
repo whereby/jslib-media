@@ -2,6 +2,7 @@ import { io } from "socket.io-client";
 import adapterRaw from "webrtc-adapter";
 import { ReconnectManager } from "./ReconnectManager";
 import { PROTOCOL_RESPONSES } from "../model/protocol";
+import { RtcManager } from "src/webrtc";
 
 const adapter = adapterRaw.default ?? adapterRaw;
 
@@ -75,7 +76,7 @@ export class ServerSocket {
         });
     }
 
-    setRtcManager(rtcManager?: any) {
+    setRtcManager(rtcManager?: RtcManager) {
         if (this._reconnectManager) {
             this._reconnectManager.rtcManager = rtcManager;
         }

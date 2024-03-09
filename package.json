@@ -21,30 +21,18 @@
     "format:fix": "prettier --write './**/*.{js,ts,yml,json}'",
     "format:check": "prettier --check './**/*.{js,ts,yml,json}'"
   },
+  "main": "./dist/index.esm.js",
+  "module": "./dist/index.esm.js",
   "exports": {
-    "./webrtc": {
-      "import": "./dist/webrtc.js",
-      "types": "./dist/webrtc.d.ts"
-    },
-    "./utils": {
-      "import": "./dist/utils.js",
-      "types": "./dist/utils.d.ts"
-    },
-    "./model": {
-      "import": "./dist/model.js",
-      "types": "./dist/model.d.ts"
+    ".": {
+      "import": "./dist/index.esm.js",
+      "types": "./dist/index.d.ts"
     }
   },
   "typesVersions": {
     "*": {
-      "webrtc": [
-        "./dist/webrtc.d.ts"
-      ],
-      "utils": [
-        "./dist/utils.d.ts"
-      ],
-      "model": [
-        "./dist/model.d.ts"
+      "*": [
+        "./dist/index.d.ts"
       ]
     }
   },

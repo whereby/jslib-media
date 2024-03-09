@@ -14,6 +14,7 @@ import createMicAnalyser from "./VegaMicAnalyser";
 import { maybeTurnOnly } from "../utils/transportSettings";
 import VegaMediaQualityMonitor from "./VegaMediaQualityMonitor";
 import Logger from "../utils/Logger";
+import { RtcManager } from "./types";
 
 const adapter = adapterRaw.default ?? adapterRaw;
 const logger = new Logger();
@@ -28,7 +29,7 @@ const OUTBOUND_SCREEN_OUTBOUND_STREAM_ID = uuidv4();
 
 if (browserName === "chrome") window.document.addEventListener("beforeunload", () => (unloading = true));
 
-export default class VegaRtcManager {
+export default class VegaRtcManager implements RtcManager {
     _selfId: any;
     _room: any;
     _roomSessionId: any;
@@ -36,7 +37,7 @@ export default class VegaRtcManager {
     _serverSocket: any;
     _webrtcProvider: any;
     _features: any;
-    _eventClaim: any;
+    _eventClaim?: any;
     _vegaConnection: any;
     _micAnalyser: any;
     _micAnalyserDebugger: any;
@@ -95,7 +96,7 @@ export default class VegaRtcManager {
         serverSocket: any;
         webrtcProvider: any;
         features?: any;
-        eventClaim?: any;
+        eventClaim?: string;
         deviceHandlerFactory?: any;
     }) {
         const { session, iceServers, sfuServer, mediaserverConfigTtlSeconds } = room;
@@ -1019,7 +1020,7 @@ export default class VegaRtcManager {
      *
      * @param {string} eventClaim
      */
-    setEventClaim(eventClaim: any) {
+    setEventClaim(eventClaim: string) {
         this._eventClaim = eventClaim;
 
         this._vegaConnection?.message("eventClaim", { eventClaim });
@@ -1076,7 +1077,7 @@ export default class VegaRtcManager {
      * @param {ignored} _activeBreakout
      * @param {string} eventClaim
      */
-    disconnect(clientIdOrStreamId: string, _activeBreakout: any, eventClaim: any) {
+    disconnect(clientIdOrStreamId: string, _activeBreakout: any, eventClaim?: string) {
         logger.info("disconnect() [clientIdOrStreamId:%s, eventClaim:%s]", clientIdOrStreamId, eventClaim);
 
         if (this._clientStates.has(clientIdOrStreamId)) {

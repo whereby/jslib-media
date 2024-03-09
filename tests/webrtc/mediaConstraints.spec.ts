@@ -7,9 +7,10 @@ describe("getConstraints", () => {
 
     it("should not request audio if it is false", () => {
         const result = getConstraints({
-            devices: [vdev1, adev1],
+            devices: [vdev1, adev1] as any,
             videoId: "v",
             audioId: false,
+            options: {} as any,
         });
 
         expect(result).toEqual({ video: expect.any(Object) });
@@ -60,7 +61,7 @@ describe("getMediaConstraints", () => {
             ({ lowDataMode, simulcast, expected }) => {
                 const preferredDeviceIds = { audioId: "audioId", videoId: "videoId" };
 
-                const result = getMediaConstraints({ lowDataMode, preferredDeviceIds, simulcast });
+                const result = getMediaConstraints({ lowDataMode, preferredDeviceIds, simulcast } as any);
 
                 expect(result.video.frameRate).toBe(expected);
             }

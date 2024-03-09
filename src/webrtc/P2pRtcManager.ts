@@ -15,6 +15,7 @@ import checkIp from "check-ip";
 import validate from "uuid-validate";
 import rtcManagerEvents from "./rtcManagerEvents";
 import Logger from "../utils/Logger";
+import { RtcManager } from "./types";
 
 const adapter = adapterRaw.default ?? adapterRaw;
 const logger = new Logger();
@@ -36,7 +37,7 @@ if (browserName === "chrome") {
     });
 }
 
-export default class P2pRtcManager {
+export default class P2pRtcManager implements RtcManager {
     _selfId: any;
     _roomName: any;
     _roomSessionId: any;
@@ -139,7 +140,7 @@ export default class P2pRtcManager {
         session.maybeRestrictRelayBandwidth();
     }
 
-    addNewStream(streamId: string, stream: any) {
+    addNewStream(streamId: string, stream: MediaStream) {
         if (stream === this.localStreams[streamId]) {
             // this can happen after reconnect. We do not want to add the stream to the
             // peerconnection again.
@@ -180,7 +181,7 @@ export default class P2pRtcManager {
         return;
     }
 
-    replaceTrack(oldTrack: any, newTrack: any) {
+    replaceTrack(oldTrack: MediaStreamTrack, newTrack: MediaStreamTrack) {
         if (oldTrack && oldTrack.kind === "audio") {
             this._stopMonitoringAudioTrack(oldTrack);
         }
@@ -190,7 +191,7 @@ export default class P2pRtcManager {
         return this._replaceTrackToPeerConnections(oldTrack, newTrack);
     }
 
-    accept({ clientId, shouldAddLocalVideo }: { clientId: any; shouldAddLocalVideo?: any }) {
+    accept({ clientId, shouldAddLocalVideo }: { clientId: string; shouldAddLocalVideo?: boolean }) {
         return this.acceptNewStream({ streamId: clientId, clientId, shouldAddLocalVideo });
     }
 
@@ -1017,7 +1018,7 @@ export default class P2pRtcManager {
 
     // implements a strategy to change the bandwidth for all clients (without negotiation)
     // returns bandwidth so it can be used as initial bandwidth for new client.
-    _changeBandwidthForAllClients(isJoining: any) {
+    _changeBandwidthForAllClients(isJoining: boolean) {
         let numPeers = this.numberOfPeerconnections();
         if (isJoining) {
             // client will be added to RTCManager.peerConnections afterwards
@@ -1218,7 +1219,7 @@ export default class P2pRtcManager {
     }: {
         streamId: string;
         clientId: string;
-        shouldAddLocalVideo: boolean;
+        shouldAddLocalVideo?: boolean;
     }) {
         let session = this._getSession(clientId);
         if (session && streamId !== clientId) {
