@@ -1,3 +1,4 @@
+export { default as assert } from "./assert";
 export * from "./bandwidthTestUtils";
 export * from "./getHandler";
 export { default as ipRegex } from "./ipRegex";
