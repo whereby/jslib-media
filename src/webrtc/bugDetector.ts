@@ -1,5 +1,6 @@
 import adapterRaw from "webrtc-adapter";
 
+// @ts-ignore
 const adapter = adapterRaw.default ?? adapterRaw;
 
 /**

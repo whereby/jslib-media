@@ -3,6 +3,7 @@ import adapterRaw from "webrtc-adapter";
 import * as sdpTransform from "sdp-transform";
 import Logger from "../utils/Logger";
 
+// @ts-ignore
 const adapter = adapterRaw.default ?? adapterRaw;
 const logger = new Logger();
 

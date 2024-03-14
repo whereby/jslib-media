@@ -4,6 +4,7 @@ import { ReconnectManager } from "./ReconnectManager";
 import { PROTOCOL_RESPONSES } from "../model/protocol";
 import { RtcManager } from "src/webrtc";
 
+// @ts-ignore
 const adapter = adapterRaw.default ?? adapterRaw;
 
 const DEFAULT_SOCKET_PATH = "/protocol/socket.io/v4";

@@ -3,6 +3,7 @@ import adapterRaw from "webrtc-adapter";
 import rtcstats from "rtcstats";
 import { v4 as uuidv4 } from "uuid";
 
+// @ts-ignore
 const adapter = adapterRaw.default ?? adapterRaw; // eslint-disable-line no-unused-vars
 
 const RTCSTATS_PROTOCOL_VERSION = "1.0";

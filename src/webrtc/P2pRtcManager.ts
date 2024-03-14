@@ -17,6 +17,7 @@ import rtcManagerEvents from "./rtcManagerEvents";
 import Logger from "../utils/Logger";
 import { RtcManager } from "./types";
 
+// @ts-ignore
 const adapter = adapterRaw.default ?? adapterRaw;
 const logger = new Logger();
 
