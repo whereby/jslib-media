@@ -36,7 +36,7 @@ const idFieldsByKind = {
  *
  * @param args
  * @param args.devices - list of available devices
- * @param args.kind - filter by "audioinput" | "videoinput" | "videooutput"
+ * @param args.kind - filter by "audioinput" | "videoinput" | "audiooutput"
  * @returns Array<{[idField]: deviceId}>
  */
 export function buildDeviceList({ busyDeviceIds, devices, kind }) {
