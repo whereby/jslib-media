@@ -383,7 +383,6 @@ export async function getStream(constraintOpt, { replaceStream, fallback = true 
             // NotReadableError - OS can't read
             // AbortError - Other error for browser giving us this
 
-            // Try to revert back to what we had before
             if (replaceStream && !stopTracks) {
                 // We didn't stop the tracks, so let's do that and retry
                 stopStreamTracks(replaceStream, only);
