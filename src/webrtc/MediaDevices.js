@@ -36,6 +36,7 @@ const idFieldsByKind = {
  *
  * @param args
  * @param args.devices - list of available devices
+ * @param args.busyDeviceIds - list of busy deviceIds
  * @param args.kind - filter by "audioinput" | "videoinput" | "audiooutput"
  * @returns Array<{[idField]: deviceId}>
  */
