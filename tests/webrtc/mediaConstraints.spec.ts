@@ -24,9 +24,9 @@ describe("getConstraints", () => {
             devices,
             audioId,
             videoId,
-        });
+        } as any);
 
-        const expected = {};
+        const expected: any = {};
         expected[mediaKind] = expect.any(Object);
         expect(result).toEqual(expected);
     });
@@ -41,7 +41,7 @@ describe("getConstraints", () => {
             devices,
             audioId,
             videoId,
-        });
+        } as any);
 
         expect(result).toEqual({});
     });
@@ -70,20 +70,20 @@ describe("getMediaConstraints", () => {
 
     describe("lax", () => {
         it("lax should delete facingmode on missing deviceId for video", () => {
-            const result = getMediaConstraints({ preferredDeviceIds: {}, lax: true });
+            const result = getMediaConstraints({ preferredDeviceIds: {}, lax: true } as any);
 
             expect(result.video).toEqual(expect.any(Object));
             expect(result.video.facingMode).toBeUndefined();
         });
 
         it("should set audio to true when audioId is missing", () => {
-            const result = getMediaConstraints({ lax: true, preferredDeviceIds: {} });
+            const result = getMediaConstraints({ lax: true, preferredDeviceIds: {} } as any);
 
             expect(result.audio).toBe(true);
         });
 
         it("should not set audio to true when audioId is present", () => {
-            const result = getMediaConstraints({ lax: true, preferredDeviceIds: { audioId: "id" } });
+            const result = getMediaConstraints({ lax: true, preferredDeviceIds: { audioId: "id" } } as any);
 
             expect(result.audio).toEqual(expect.any(Object));
         });

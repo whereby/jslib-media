@@ -10,7 +10,7 @@ const GUM_ERRORS = {
 };
 
 class MockError extends Error {
-    constructor(name, msg = "") {
+    constructor(name: string, msg: string = "") {
         super(msg);
         this.name = name;
     }
@@ -27,8 +27,8 @@ describe("buildDeviceList", () => {
     const vdev2 = { deviceId: "deviceId", label: "", kind: "videoinput" };
     it("should return default on no devices", () => {
         const kind = "audioinput";
-        const devices = [];
-        const busyDeviceIds = [];
+        const devices: MediaDeviceInfo[] = [];
+        const busyDeviceIds: string[] = [];
         const result = MediaDevices.buildDeviceList({ busyDeviceIds, devices, kind });
         expect(result).toEqual([{ audioId: "", label: "Default" }]);
     });
@@ -42,7 +42,7 @@ describe("buildDeviceList", () => {
     it("should trim and use deviceId on missing label", () => {
         const kind = "videoinput";
         const devices = [vdev2];
-        const busyDeviceIds = [];
+        const busyDeviceIds: string[] = [];
         const result = MediaDevices.buildDeviceList({ busyDeviceIds, devices, kind });
         expect(result).toEqual([{ videoId: vdev1.deviceId, label: vdev1.deviceId.slice(0, 5), busy: false }]);
     });
@@ -180,6 +180,7 @@ describe("getStream", () => {
 
     it("should NOT stop video track in stream when switching only audio", async () => {
         global.navigator.mediaDevices.getUserMedia = async () =>
+            // @ts-ignore
             helpers.createMockedMediaStream([videoTrack1, audioTrack2]);
 
         await MediaDevices.getStream(
@@ -258,7 +259,7 @@ describe("getStream", () => {
     it("should use laxer retryConstraints on OverconstrainedError", async () => {
         let called = false;
         const e = new MockError(GUM_ERRORS.OVER_CONSTRAINED);
-        const mockGUM = jest.fn(() => {
+        const mockGUM: any = jest.fn(() => {
             if (called) return Promise.resolve(helpers.createMockedMediaStream([videoTrack2, audioTrack1]));
             else {
                 called = true;
@@ -287,7 +288,7 @@ describe("getStream", () => {
     it("should retry video and audio seperately on NotFoundError", async () => {
         let callCount = 0;
         const e = new MockError(GUM_ERRORS.NOT_FOUND);
-        const mockGUM = jest.fn(() => {
+        const mockGUM: any = jest.fn(() => {
             if (callCount === 2) return Promise.resolve(helpers.createMockedMediaStream([audioTrack1]));
             else {
                 callCount++;
@@ -320,7 +321,7 @@ describe("getStream", () => {
     it("should stop tracks and retry with same constraints on NotAllowedError", async () => {
         let called = false;
         const e = new MockError(GUM_ERRORS.NOT_ALLOWED);
-        const mockGUM = jest.fn(() => {
+        const mockGUM: any = jest.fn(() => {
             if (called) return Promise.resolve(helpers.createMockedMediaStream([videoTrack2]));
             else {
                 called = true;
@@ -353,7 +354,7 @@ describe("getStream", () => {
         async (mediaKind) => {
             let callCount = 0;
             const e = new MockError(GUM_ERRORS.NOT_READABLE, mediaKind);
-            const mockGUM = jest.fn(() => {
+            const mockGUM: any = jest.fn(() => {
                 if (callCount === 2) return Promise.resolve(helpers.createMockedMediaStream([videoTrack2]));
                 else {
                     callCount++;
@@ -388,7 +389,7 @@ describe("getStream", () => {
         async (errorName) => {
             const e = new MockError(errorName);
             let callCount = 0;
-            const mockGUM = jest.fn(() => {
+            const mockGUM: any = jest.fn(() => {
                 if (callCount === 3) return Promise.resolve(helpers.createMockedMediaStream([videoTrack2]));
                 else {
                     callCount++;
