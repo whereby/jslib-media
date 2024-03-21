@@ -10,6 +10,7 @@ const GUM_ERRORS = {
 };
 
 class MockError extends Error {
+    constraint: undefined | string;
     constructor(name: string, msg: string = "") {
         super(msg);
         this.name = name;
@@ -256,7 +257,7 @@ describe("getStream", () => {
         expect(stream.addTrack).toHaveBeenCalledWith(audioTrack1);
     });
 
-    it("should use laxer retryConstraints on OverconstrainedError", async () => {
+    it("should use audio=true in constraints on OverconstrainedError and only=audio", async () => {
         let called = false;
         const e = new MockError(GUM_ERRORS.OVER_CONSTRAINED);
         const mockGUM: any = jest.fn(() => {
@@ -283,6 +284,71 @@ describe("getStream", () => {
         expect(result.stream).toBeDefined();
         expect(mockGUM.mock.calls[0][0].audio).toEqual(expect.any(Object));
         expect(mockGUM.mock.calls[1][0].audio).toEqual(true);
+    });
+
+    it.each([["width"], ["height"]])(
+        "should remove facingMode on OverconstrainedError.constraint = %s, when no deviceId was requested",
+        async (constraint) => {
+            let called = false;
+            const e = new MockError(GUM_ERRORS.OVER_CONSTRAINED);
+            e.constraint = constraint;
+            const mockGUM: any = jest.fn(() => {
+                if (called) return Promise.resolve(helpers.createMockedMediaStream([videoTrack2, audioTrack1]));
+                else {
+                    called = true;
+                    return Promise.reject(e);
+                }
+            });
+            global.navigator.mediaDevices.getUserMedia = mockGUM;
+            const type = "exact";
+
+            const result = await MediaDevices.getStream(
+                {
+                    devices,
+                    videoId: true,
+                    audioId: false,
+                    type,
+                },
+                { replaceStream: stream }
+            );
+
+            expect(result.error).toBe(e);
+            expect(result.stream).toBeDefined();
+            expect(mockGUM.mock.calls[0][0].video.facingMode).toBeDefined();
+            expect(mockGUM.mock.calls[1][0].video.facingMode).toBeUndefined();
+        }
+    );
+
+    it.only("should remove deviceId on OverconstrainedError.constraint = deviceid", async () => {
+        let called = false;
+        const e = new MockError(GUM_ERRORS.OVER_CONSTRAINED);
+        e.constraint = "deviceId";
+        const mockGUM: any = jest.fn(() => {
+            if (called) return Promise.resolve(helpers.createMockedMediaStream([videoTrack2, audioTrack1]));
+            else {
+                called = true;
+                return Promise.reject(e);
+            }
+        });
+        global.navigator.mediaDevices.getUserMedia = mockGUM;
+        const type = "exact";
+
+        const result = await MediaDevices.getStream(
+            {
+                devices,
+                videoId: vdev2.deviceId,
+                audioId: adev2.deviceId,
+                type,
+            },
+            { replaceStream: stream }
+        );
+
+        expect(result.error).toBe(e);
+        expect(result.stream).toBeDefined();
+        expect(mockGUM.mock.calls[0][0].video.deviceId).toBeDefined();
+        expect(mockGUM.mock.calls[0][0].audio.deviceId).toBeDefined();
+        expect(mockGUM.mock.calls[1][0].video.deviceId).toBeUndefined();
+        expect(mockGUM.mock.calls[1][0].audio.deviceId).toBeUndefined();
     });
 
     it("should retry video and audio seperately on NotFoundError", async () => {
