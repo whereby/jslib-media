@@ -395,10 +395,9 @@ export async function getStream(
         }
         if (e.name === "OverconstrainedError") {
             (retryConstraintOpt = {
-                deviceId: { videoId: null, audioId: null },
-                width: { lax: true },
-                height: { lax: true },
-                "": { videoId: null, audioId: null, lax: true },
+                videoId: null,
+                audioId: null,
+                lax: true,
             } as any)[e.constraint || ""];
         } else if (e.name === "NotFoundError") {
             if (constraints.audio && constraints.video) {
@@ -469,11 +468,12 @@ export async function getStream(
         }
     }
     if (retryConstraintOpt) {
+        const onlyConstraints = only ? {audio: { videoId: false }, video: { audioId: false } }[only]: {}
         newConstraints = getConstraints({
             ...constraintOpt,
             ...retryConstraintOpt,
             options: { ...constraintOpt.options, lax: retryConstraintOpt.lax },
-            ...{ audio: { videoId: false }, video: { audioId: false } }[only || "audio"],
+            ...onlyConstraints,
         });
         try {
             stream = await getUserMedia(newConstraints);
