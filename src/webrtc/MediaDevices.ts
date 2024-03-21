@@ -394,11 +394,13 @@ export async function getStream(
             throw addDetails(e);
         }
         if (e.name === "OverconstrainedError") {
-            (retryConstraintOpt = {
-                videoId: null,
-                audioId: null,
-                lax: true,
-            } as any)[e.constraint || ""];
+            const laxConstraints = {
+                deviceId: { videoId: null, audioId: null },
+                width: { lax: true },
+                height: { lax: true },
+                "": { audioId: null, videoId: null, lax: true },
+            } as any;
+            retryConstraintOpt = laxConstraints[e.constraint || ""];
         } else if (e.name === "NotFoundError") {
             if (constraints.audio && constraints.video) {
                 // Since we requested both audio and video, there's
@@ -468,7 +470,7 @@ export async function getStream(
         }
     }
     if (retryConstraintOpt) {
-        const onlyConstraints = only ? {audio: { videoId: false }, video: { audioId: false } }[only]: {}
+        const onlyConstraints = only ? { audio: { videoId: false }, video: { audioId: false } }[only] : {};
         newConstraints = getConstraints({
             ...constraintOpt,
             ...retryConstraintOpt,
