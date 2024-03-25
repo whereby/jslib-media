@@ -2,6 +2,7 @@ import * as sdpModifier from "../../src/webrtc/sdpModifier";
 import SDPUtils from "sdp";
 
 describe("sdpModifier", () => {
+    jest.spyOn(console, "error").mockImplementation(jest.fn());
     const videoSdpLines = [
         "v=0",
         "o=jdoe 2890844526 2890842807 IN IP4 10.0.1.1",
