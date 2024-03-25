@@ -55,7 +55,7 @@
     "webrtc-adapter": "^8.2.3"
   },
   "devDependencies": {
-    "@auto-it/npm": "^11.1.1",
+    "@auto-it/npm": "^11.1.2",
     "@babel/core": "^7.23.2",
     "@babel/eslint-parser": "^7.22.15",
     "@babel/preset-env": "^7.23.2",
