@@ -319,7 +319,7 @@ describe("getStream", () => {
         }
     );
 
-    it.only("should remove deviceId on OverconstrainedError.constraint = deviceid", async () => {
+    it("should remove deviceId on OverconstrainedError.constraint = deviceid", async () => {
         let called = false;
         const e = new MockError(GUM_ERRORS.OVER_CONSTRAINED);
         e.constraint = "deviceId";
